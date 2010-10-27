@@ -207,7 +207,56 @@ static int proc_root_link(struct dentry *dentry, struct path *path)
 	return result;
 }
 
-static int proc_pid_cmdline(struct task_struct *task, char *buffer)
+/*
+ * Return zero if current may access user memory in @task, -error if not.
+ */
+static int check_mem_permission(struct task_struct *task)
+{
+	/*
+	 * A task can always look at itself, in case it chooses
+	 * to use system calls instead of load instructions.
+	 */
+	if (task == current)
+		return 0;
+
+	/*
+	 * If current is actively ptrace'ing, and would also be
+	 * permitted to freshly attach with ptrace now, permit it.
+	 */
+	if (task_is_stopped_or_traced(task)) {
+		int match;
+		rcu_read_lock();
+		match = (tracehook_tracer_task(task) == current);
+		rcu_read_unlock();
+		if (match && ptrace_may_access(task, PTRACE_MODE_ATTACH))
+			return 0;
+	}
+
+	/*
+	 * Noone else is allowed.
+	 */
+	return -EPERM;
+}
+
+struct mm_struct *mm_for_maps(struct task_struct *task)
+{
+	struct mm_struct *mm;
+
+	if (mutex_lock_killable(&task->signal->cred_guard_mutex))
+		return NULL;
+
+	mm = get_task_mm(task);
+	if (mm && mm != current->mm &&
+			!ptrace_may_access(task, PTRACE_MODE_READ)) {
+		mmput(mm);
+		mm = NULL;
+	}
+	mutex_unlock(&task->signal->cred_guard_mutex);
+
+	return mm;
+}
+
+static int proc_pid_cmdline(struct task_struct *task, char * buffer)
 {
 	return get_cmdline(task, buffer, PAGE_SIZE);
 }

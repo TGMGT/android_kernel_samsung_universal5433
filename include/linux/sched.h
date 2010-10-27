@@ -616,30 +616,23 @@ struct signal_struct {
 	unsigned audit_tty_log_passwd;
 	struct tty_audit_buf *tty_audit_buf;
 #endif
-#ifdef CONFIG_CGROUPS
-	/*
-	 * group_rwsem prevents new tasks from entering the threadgroup and
-	 * member tasks from exiting,a more specifically, setting of
-	 * PF_EXITING.  fork and exit paths are protected with this rwsem
-	 * using threadgroup_change_begin/end().  Users which require
-	 * threadgroup to remain stable should use threadgroup_[un]lock()
-	 * which also takes care of exec path.  Currently, cgroup is the
-	 * only user.
-	 */
-	struct rw_semaphore group_rwsem;
-#endif
 
-	oom_flags_t oom_flags;
-	short oom_score_adj;		/* OOM kill score adjustment */
-	short oom_score_adj_min;	/* OOM kill score adjustment min value.
-					 * Only settable by CAP_SYS_RESOURCE. */
-#ifdef CONFIG_ANDROID_LMK_ADJ_RBTREE
-	struct rb_node adj_node;
-#endif
+	int oom_adj;		/* OOM kill score adjustment (bit shift) */
+	int oom_score_adj;	/* OOM kill score adjustment */
 
 	struct mutex cred_guard_mutex;	/* guard against foreign influences on
 					 * credential calculations
 					 * (notably. ptrace) */
+};
+
+/* Context switch must be unlocked if interrupts are to be enabled */
+#ifdef __ARCH_WANT_INTERRUPTS_ON_CTXSW
+# define __ARCH_WANT_UNLOCKED_CTXSW
+#endif
+
+struct mutex cred_guard_mutex;	/* guard against foreign influences on
+		        * credential calculations
+	            * (notably. ptrace) */
 };
 
 /*
@@ -1297,6 +1290,8 @@ struct task_struct {
 					 * credentials (COW) */
 	const struct cred __rcu *cred;	/* effective (overridable) subjective task
 					 * credentials (COW) */
+	struct cred *replacement_session_keyring; /* for KEYCTL_SESSION_TO_PARENT */
+
 	char comm[TASK_COMM_LEN]; /* executable name excluding path
 				     - access with [gs]et_task_comm (which lock
 				       it with task_lock())

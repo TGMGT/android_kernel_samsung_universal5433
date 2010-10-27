@@ -1111,6 +1111,8 @@ static int copy_signal(unsigned long clone_flags, struct task_struct *tsk)
 
 	mutex_init(&sig->cred_guard_mutex);
 
+	mutex_init(&sig->cred_guard_mutex);
+
 	return 0;
 }
 
