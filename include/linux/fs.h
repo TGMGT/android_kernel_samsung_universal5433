@@ -1539,8 +1539,8 @@ extern int vfs_link2(struct vfsmount *, struct dentry *, struct inode *, struct 
 extern int check_sticky(struct inode *dir, struct inode *inode);
 extern int vfs_rmdir(struct inode *, struct dentry *);
 extern int vfs_rmdir2(struct vfsmount *, struct inode *, struct dentry *);
-extern int vfs_unlink(struct inode *, struct dentry *);
-extern int vfs_unlink2(struct vfsmount *, struct inode *, struct dentry *);
+extern int vfs_unlink(struct inode *, struct dentry *, struct inode **);
+extern int vfs_unlink2(struct vfsmount *, struct inode *, struct dentry *, struct inode **);
 extern int vfs_rename(struct inode *, struct dentry *, struct inode *, struct dentry *, unsigned int);
 extern int vfs_rename2(struct vfsmount *, struct inode *, struct dentry *, struct inode *, struct dentry *, unsigned int);
 extern int vfs_whiteout(struct inode *, struct dentry *);
