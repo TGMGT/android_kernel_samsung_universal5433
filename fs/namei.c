@@ -4181,8 +4181,9 @@ out:
 	return error;
 }
 
-static int vfs_rename_other(struct vfsmount *mnt, struct inode *old_dir, struct dentry *old_dentry,
-			    struct inode *new_dir, struct dentry *new_dentry, unsigned int flags)
+static int vfs_rename_other(struct inode *old_dir, struct dentry *old_dentry,
+			    struct inode *new_dir, struct dentry *new_dentry,
+			    struct inode **delegated_inode)
 {
 	struct inode *target = new_dentry->d_inode;
 	unsigned max_links = new_dir->i_sb->s_max_links;
@@ -4212,17 +4213,15 @@ static int vfs_rename_other(struct vfsmount *mnt, struct inode *old_dir, struct 
 	if (d_mountpoint(old_dentry) || d_mountpoint(new_dentry))
 		goto out;
 
-	error = -EMLINK;
-	if (max_links && new_dir != old_dir) {
-		if ((flags & RENAME_EXCHANGE) && new_is_dir && old_dir->i_nlink >= max_links)
+	error = try_break_deleg(source, delegated_inode);
+	if (error)
+		goto out;
+	if (target) {
+		error = try_break_deleg(target, delegated_inode);
+		if (error)
 			goto out;
 	}
-
-	if (!old_dir->i_op->rename2) {
-		error = old_dir->i_op->rename(old_dir, old_dentry, new_dir, new_dentry);
-	} else {
-		error = old_dir->i_op->rename2(old_dir, old_dentry, new_dir, new_dentry, flags);
-	}
+	error = old_dir->i_op->rename(old_dir, old_dentry, new_dir, new_dentry);
 	if (error)
 		goto out;
 
@@ -4245,10 +4244,31 @@ out:
 	return error;
 }
 
+/**
+ * vfs_rename - rename a filesystem object
+ * @old_dir:	parent of source
+ * @old_dentry:	source
+ * @new_dir:	parent of destination
+ * @new_dentry:	destination
+ * @delegated_inode: returns an inode needing a delegation break
+ *
+ * The caller must hold multiple mutexes--see lock_rename()).
+ *
+ * If vfs_rename discovers a delegation in need of breaking at either
+ * the source or destination, it will return -EWOULDBLOCK and return a
+ * reference to the inode in delegated_inode.  The caller should then
+ * break the delegation and retry.  Because breaking a delegation may
+ * take a long time, the caller should drop all locks before doing
+ * so.
+ *
+ * Alternatively, a caller may pass NULL for delegated_inode.  This may
+ * be appropriate for callers that expect the underlying filesystem not
+ * to be NFS exported.
+ */
 int vfs_rename2(struct vfsmount *mnt,
-	       struct inode *old_dir, struct dentry *old_dentry,
+		   struct inode *old_dir, struct dentry *old_dentry,
 	       struct inode *new_dir, struct dentry *new_dentry,
-           unsigned int flags)
+	       struct inode **delegated_inode)
 {
 	int error;
 	int is_dir = d_is_dir(old_dentry);
@@ -4283,10 +4303,8 @@ int vfs_rename2(struct vfsmount *mnt,
 	if (is_dir)
 		error = vfs_rename_dir(mnt, old_dir, old_dentry, new_dir, new_dentry, flags);
 	else
-		error = vfs_rename_other(mnt, old_dir, old_dentry, new_dir, new_dentry, flags);
-
-	if (!error) {
-		/* Send dual fsnotify notifications since two files swapped places */
+		error = vfs_rename_other(old_dir,old_dentry,new_dir,new_dentry,delegated_inode);
+	if (!error)
 		fsnotify_move(old_dir, new_dir, old_name.name, is_dir,
 			      !(flags & RENAME_EXCHANGE) ? target : NULL, old_dentry);
 		if (flags & RENAME_EXCHANGE) {
@@ -4315,6 +4333,7 @@ SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
 	struct dentry *old_dentry, *new_dentry;
 	struct dentry *trap;
 	struct nameidata oldnd, newnd;
+	struct inode *delegated_inode = NULL;
 	struct filename *from;
 	struct filename *to;
 	unsigned int lookup_flags = 0;
@@ -4363,6 +4382,7 @@ retry:
 	if (!(flags & RENAME_EXCHANGE))
 		newnd.flags |= LOOKUP_RENAME_TARGET;
 
+retry_deleg:
 	trap = lock_rename(new_dir, old_dir);
 
 	old_dentry = lookup_hash(&oldnd);
@@ -4418,13 +4438,19 @@ retry:
 	if (error)
 		goto exit5;
 	error = vfs_rename2(oldnd.path.mnt, old_dir->d_inode, old_dentry,
-				   new_dir->d_inode, new_dentry, flags);
+				   new_dir->d_inode, new_dentry,
+				   &delegated_inode);
 exit5:
 	dput(new_dentry);
 exit4:
 	dput(old_dentry);
 exit3:
 	unlock_rename(new_dir, old_dir);
+	if (delegated_inode) {
+		error = break_deleg_wait(&delegated_inode);
+		if (!error)
+			goto retry_deleg;
+	}
 	mnt_drop_write(oldnd.path.mnt);
 exit2:
 	if (retry_estale(error, lookup_flags))
