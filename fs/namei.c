@@ -4055,7 +4055,8 @@ SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname
  *	   That's where 4.4 screws up. Current fix: serialization on
  *	   sb->s_vfs_rename_mutex. We might be more accurate, but that's another
  *	   story.
- *	c) we have to lock _three_ objects - parents and victim (if it exists).
+ *	c) we have to lock _four_ objects - parents and victim (if it exists),
+ *	   and source (if it is not a directory).
  *	   And that - after we got ->i_mutex on parents (until then we don't know
  *	   whether the target exists).  Solution: try to be smart with locking
  *	   order for inodes.  We rely on the fact that tree topology may change
