@@ -1007,16 +1007,16 @@ void lock_two_nondirectories(struct inode *inode1, struct inode *inode2)
 {
 	WARN_ON_ONCE(S_ISDIR(inode1->i_mode));
 	if (inode1 == inode2 || !inode2) {
-		mutex_lock(&inode1->i_mutex);
+		mutex_lock_nested(&inode1->i_mutex, I_MUTEX_PARENT);
 		return;
 	}
 	WARN_ON_ONCE(S_ISDIR(inode2->i_mode));
 	if (inode1 < inode2) {
-		mutex_lock(&inode1->i_mutex);
-		mutex_lock_nested(&inode2->i_mutex, I_MUTEX_NONDIR2);
+		mutex_lock_nested(&inode1->i_mutex, I_MUTEX_PARENT);
+		mutex_lock_nested(&inode2->i_mutex, I_MUTEX_CHILD);
 	} else {
-		mutex_lock(&inode2->i_mutex);
-		mutex_lock_nested(&inode1->i_mutex, I_MUTEX_NONDIR2);
+		mutex_lock_nested(&inode2->i_mutex, I_MUTEX_PARENT);
+		mutex_lock_nested(&inode1->i_mutex, I_MUTEX_CHILD);
 	}
 }
 EXPORT_SYMBOL(lock_two_nondirectories);
