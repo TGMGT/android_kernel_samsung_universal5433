@@ -2281,19 +2281,22 @@ mountpoint_last(struct nameidata *nd, struct path *path)
 	struct dentry *dentry;
 	struct dentry *dir = nd->path.dentry;
 
-	if (unlikely(nd->flags & LOOKUP_RCU)) {
-		WARN_ON_ONCE(1);
-		error = -ECHILD;
-		goto error_check;
+	/* If we're in rcuwalk, drop out of it to handle last component */
+	if (nd->flags & LOOKUP_RCU) {
+		if (unlazy_walk(nd, NULL)) {
+			error = -ECHILD;
+			goto out;
+		}
 	}
 
 	nd->flags &= ~LOOKUP_PARENT;
 
 	if (unlikely(nd->last_type != LAST_NORM)) {
 		error = handle_dots(nd, nd->last_type);
-		if (!error)
-			dentry = dget(nd->path.dentry);
-		goto error_check;
+		if (error)
+			goto out;
+		dentry = dget(nd->path.dentry);
+		goto done;
 	}
 
 	mutex_lock(&dir->d_inode->i_mutex);
@@ -2307,31 +2310,28 @@ mountpoint_last(struct nameidata *nd, struct path *path)
 		dentry = d_alloc(dir, &nd->last);
 		if (!dentry) {
 			error = -ENOMEM;
-			mutex_unlock(&dir->d_inode->i_mutex);
-		} else {
-			dentry = lookup_real(dir->d_inode, dentry, nd->flags);
-			error = PTR_ERR(dentry);
-			if (IS_ERR(dentry)) {
-			     mutex_unlock(&dir->d_inode->i_mutex);
-		    }
+			goto out;
 		}
+		dentry = lookup_real(dir->d_inode, dentry, nd->flags);
+		error = PTR_ERR(dentry);
+		if (IS_ERR(dentry))
+			goto out;
 	}
 	mutex_unlock(&dir->d_inode->i_mutex);
 
-error_check:
-	if (!error) {
-		if (!dentry->d_inode || d_is_negative(dentry)) {
-			error = -ENOENT;
-			dput(dentry);
-		} else {
-			path->dentry = dentry;
-			path->mnt = mntget(nd->path.mnt);
-			if (should_follow_link(dentry,
-						nd->flags & LOOKUP_FOLLOW))
-				return 1;
-			follow_mount(path);
-		}
+done:
+	if (!dentry->d_inode) {
+		error = -ENOENT;
+		dput(dentry);
+		goto out;
 	}
+	path->dentry = dentry;
+	path->mnt = mntget(nd->path.mnt);
+	if (should_follow_link(dentry->d_inode, nd->flags & LOOKUP_FOLLOW))
+		return 1;
+	follow_mount(path);
+	error = 0;
+out:
 	terminate_walk(nd);
 	return error;
 }
@@ -2360,15 +2360,6 @@ path_mountpoint(int dfd, const char *name, struct path *path, unsigned int flags
 	err = link_path_walk(name, &nd);
 	if (err)
 		goto out;
-
-	/* If we're in rcuwalk, drop out of it to handle last component */
-	if (nd.flags & LOOKUP_RCU) {
-		err = unlazy_walk(&nd, NULL);
-		if (err) {
-			terminate_walk(&nd);
-			goto out;
-		}
-	}
 
 	err = mountpoint_last(&nd, path);
 	while (err > 0) {
