@@ -2328,10 +2328,13 @@ umount_lookup_last(struct nameidata *nd, struct path *path)
 		dentry = d_alloc(dir, &nd->last);
 		if (!dentry) {
 			error = -ENOMEM;
+			mutex_unlock(&dir->d_inode->i_mutex);
 		} else {
 			dentry = lookup_real(dir->d_inode, dentry, nd->flags);
-			if (IS_ERR(dentry))
-				error = PTR_ERR(dentry);
+			error = PTR_ERR(dentry);
+			if (IS_ERR(dentry)) {
+			     mutex_unlock(&dir->d_inode->i_mutex);
+		    }
 		}
 	}
 	mutex_unlock(&dir->d_inode->i_mutex);
