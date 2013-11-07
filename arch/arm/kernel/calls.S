@@ -389,9 +389,9 @@
 		CALL(sys_process_vm_writev)
 		CALL(sys_kcmp)
 		CALL(sys_finit_module)
-/* 380 */	CALL(sys_sched_setattr)		/* reserved sys_sched_setattr */
-		CALL(sys_sched_getattr)		/* reserved sys_sched_getattr */
-		CALL(sys_renameat2)		/* reserved sys_renameat2     */
+/* 380 */	CALL(sys_sched_setattr)
+		CALL(sys_sched_getattr)
+		CALL(sys_renameat2)
 		CALL(sys_seccomp)
 		CALL(sys_getrandom)
 /* 385 */	CALL(sys_memfd_create)
