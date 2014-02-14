@@ -808,7 +808,7 @@ setup_root:
 		return dget(sb->s_root);
 	}
 
-	return d_obtain_alias(inode);
+	return d_obtain_root(inode);
 }
 
 static int btrfs_fill_super(struct super_block *sb,
