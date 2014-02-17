@@ -2534,9 +2534,9 @@ out_err:
  * @inode:  the inode which may have a disconnected dentry
  * @dentry: a negative dentry which we want to point to the inode.
  *
- * If inode is a directory and has an IS_ROOT alias, then d_move that in
- * place of the given dentry and return it, else simply d_add the inode
- * to the dentry and return NULL.
+ * If inode is a directory and has a 'disconnected' dentry (i.e. IS_ROOT and
+ * DCACHE_DISCONNECTED), then d_move that in place of the given dentry
+ * and return it, else simply d_add the inode to the dentry and return NULL.
  *
  * If a non-IS_ROOT directory is found, the filesystem is corrupt, and
  * we should error out: directories can't have multiple aliases.
@@ -2563,19 +2563,7 @@ struct dentry *d_splice_alias(struct inode *inode, struct dentry *dentry)
 		spin_lock(&inode->i_lock);
 		new = __d_find_any_alias(inode);
 		if (new) {
-			if (!IS_ROOT(new)) {
-				spin_unlock(&inode->i_lock);
-				dput(new);
-				iput(inode);
-				return ERR_PTR(-EIO);
-			}
-			if (d_ancestor(new, dentry)) {
-				spin_unlock(&inode->i_lock);
-				dput(new);
-				iput(inode);
-				return ERR_PTR(-EIO);
-			}
-			if (d_ancestor(new, dentry)) {
+			if (!IS_ROOT(new) || !(new->d_flags & DCACHE_DISCONNECTED)) {
 				spin_unlock(&inode->i_lock);
 				dput(new);
 				return ERR_PTR(-EIO);
