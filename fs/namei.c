@@ -4288,7 +4288,7 @@ SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
 	bool should_retry = false;
 	int error;
 
-	if (flags)
+	if (flags & ~RENAME_NOREPLACE)
 		return -EINVAL;
 
 retry:
@@ -4345,26 +4345,14 @@ retry_deleg:
 	if (IS_ERR(new_dentry))
 		goto exit4;
 	error = -EEXIST;
-	if ((flags & RENAME_NOREPLACE) && new_dentry->d_inode)
+	if ((flags & RENAME_NOREPLACE) && d_is_positive(new_dentry))
 		goto exit5;
-
-	if (flags & RENAME_EXCHANGE) {
-		error = -ENOENT;
-		if (!new_dentry->d_inode)
-			goto exit5;
-		if (!S_ISDIR(new_dentry->d_inode->i_mode)) {
-			error = -ENOTDIR;
-			if (newnd.last.name[newnd.last.len])
-				goto exit5;
-		}
-	}
-
 	/* unless the source is a directory trailing slashes give -ENOTDIR */
 	if (!d_is_dir(old_dentry)) {
 		error = -ENOTDIR;
 		if (oldnd.last.name[oldnd.last.len])
 			goto exit5;
-		if (!(flags & RENAME_EXCHANGE) && newnd.last.name[newnd.last.len])
+		if (newnd.last.name[newnd.last.len])
 			goto exit5;
 	}
 	/* source should not be ancestor of target */
