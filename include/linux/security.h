@@ -3008,7 +3008,7 @@ static inline int security_path_rename(struct path *old_dir,
 				       struct dentry *old_dentry,
 				       struct path *new_dir,
 				       struct dentry *new_dentry,
-					   unsigned int flags)
+				       unsigned int flags)
 {
 	return 0;
 }
