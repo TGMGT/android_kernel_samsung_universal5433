@@ -23,10 +23,6 @@
 #include <linux/skbuff.h>
 #include <linux/export.h>
 
-static struct sock_filter ptp_filter[] = {
-	PTP_FILTER
-};
-
 static unsigned int classify(const struct sk_buff *skb)
 {
 	if (likely(skb->dev &&
@@ -132,8 +128,3 @@ bool skb_defer_rx_timestamp(struct sk_buff *skb)
 	return false;
 }
 EXPORT_SYMBOL_GPL(skb_defer_rx_timestamp);
-
-void __init skb_timestamping_init(void)
-{
-	BUG_ON(sk_chk_filter(ptp_filter, ARRAY_SIZE(ptp_filter)));
-}
