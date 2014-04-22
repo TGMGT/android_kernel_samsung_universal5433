@@ -131,7 +131,8 @@
 
 #define IS_POSIX(fl)	(fl->fl_flags & FL_POSIX)
 #define IS_FLOCK(fl)	(fl->fl_flags & FL_FLOCK)
-#define IS_LEASE(fl)	(fl->fl_flags & FL_LEASE)
+#define IS_LEASE(fl)	(fl->fl_flags & (FL_LEASE|FL_DELEG))
+#define IS_OFDLCK(fl)	(fl->fl_flags & FL_OFDLCK)
 
 static bool lease_breaking(struct file_lock *fl)
 {
@@ -667,6 +668,15 @@ EXPORT_SYMBOL(posix_test_lock);
  * of tasks (such as posix threads) sharing the same open file table.
  *
  * To handle those cases, we just bail out after a few iterations.
+ *
+ * For FL_OFDLCK locks, the owner is the filp, not the files_struct.
+ * Because the owner is not even nominally tied to a thread of
+ * execution, the deadlock detection below can't reasonably work well. Just
+ * skip it for those.
+ *
+ * In principle, we could do a more limited deadlock detection on FL_OFDLCK
+ * locks that just checks for the case where two tasks are attempting to
+ * upgrade from read to write locks on the same inode.
  */
 
 #define MAX_DEADLK_ITERATIONS 10
@@ -687,6 +697,13 @@ static int posix_locks_deadlock(struct file_lock *caller_fl,
 				struct file_lock *block_fl)
 {
 	int i = 0;
+
+	/*
+	 * This deadlock detector can't reasonably detect deadlocks with
+	 * FL_OFDLCK locks, since they aren't owned by a process, per-se.
+	 */
+	if (IS_OFDLCK(caller_fl))
+		return 0;
 
 	while ((block_fl = what_owner_is_waiting_for(block_fl))) {
 		if (i++ > MAX_DEADLK_ITERATIONS)
@@ -1686,7 +1703,7 @@ EXPORT_SYMBOL_GPL(vfs_test_lock);
 
 static int posix_lock_to_flock(struct flock *flock, struct file_lock *fl)
 {
-	flock->l_pid = fl->fl_pid;
+	flock->l_pid = IS_OFDLCK(fl) ? -1 : fl->fl_pid;
 #if BITS_PER_LONG == 32
 	/*
 	 * Make sure we can represent the posix lock via
@@ -1708,7 +1725,7 @@ static int posix_lock_to_flock(struct flock *flock, struct file_lock *fl)
 #if BITS_PER_LONG == 32
 static void posix_lock_to_flock64(struct flock64 *flock, struct file_lock *fl)
 {
-	flock->l_pid = fl->fl_pid;
+	flock->l_pid = IS_OFDLCK(fl) ? -1 : fl->fl_pid;
 	flock->l_start = fl->fl_start;
 	flock->l_len = fl->fl_end == OFFSET_MAX ? 0 :
 		fl->fl_end - fl->fl_start + 1;
@@ -1743,7 +1760,7 @@ int fcntl_getlk(struct file *filp, unsigned int cmd, struct flock __user *l)
 			goto out;
 
 		cmd = F_GETLK;
-		file_lock.fl_flags |= FL_FILE_PVT;
+		file_lock.fl_flags |= FL_OFDLCK;
 		file_lock.fl_owner = (fl_owner_t)filp;
 	}
 
@@ -1868,7 +1885,7 @@ int fcntl_setlk(unsigned int fd, struct file *filp, unsigned int cmd,
 
 	/*
 	 * If the cmd is requesting file-private locks, then set the
-	 * FL_FILE_PVT flag and override the owner.
+	 * FL_OFDLCK flag and override the owner.
 	 */
 	switch (cmd) {
 	case F_OFD_SETLK:
@@ -1877,7 +1894,7 @@ int fcntl_setlk(unsigned int fd, struct file *filp, unsigned int cmd,
 			goto out;
 
 		cmd = F_SETLK;
-		file_lock->fl_flags |= FL_FILE_PVT;
+		file_lock->fl_flags |= FL_OFDLCK;
 		file_lock->fl_owner = (fl_owner_t)filp;
 		break;
 	case F_OFD_SETLKW:
@@ -1886,7 +1903,7 @@ int fcntl_setlk(unsigned int fd, struct file *filp, unsigned int cmd,
 			goto out;
 
 		cmd = F_SETLKW;
-		file_lock->fl_flags |= FL_FILE_PVT;
+		file_lock->fl_flags |= FL_OFDLCK;
 		file_lock->fl_owner = (fl_owner_t)filp;
 		/* Fallthrough */
 	case F_SETLKW:
@@ -1964,7 +1981,7 @@ int fcntl_getlk64(struct file *filp, unsigned int cmd, struct flock64 __user *l)
 			goto out;
 
 		cmd = F_GETLK64;
-		file_lock.fl_flags |= FL_FILE_PVT;
+		file_lock.fl_flags |= FL_OFDLCK;
 		file_lock.fl_owner = (fl_owner_t)filp;
 	}
 
@@ -2022,7 +2039,7 @@ int fcntl_setlk64(unsigned int fd, struct file *filp, unsigned int cmd,
 
 	/*
 	 * If the cmd is requesting file-private locks, then set the
-	 * FL_FILE_PVT flag and override the owner.
+	 * FL_OFDLCK flag and override the owner.
 	 */
 	switch (cmd) {
 	case F_OFD_SETLK:
@@ -2031,7 +2048,7 @@ int fcntl_setlk64(unsigned int fd, struct file *filp, unsigned int cmd,
 			goto out;
 
 		cmd = F_SETLK64;
-		file_lock->fl_flags |= FL_FILE_PVT;
+		file_lock->fl_flags |= FL_OFDLCK;
 		file_lock->fl_owner = (fl_owner_t)filp;
 		break;
 	case F_OFD_SETLKW:
@@ -2040,7 +2057,7 @@ int fcntl_setlk64(unsigned int fd, struct file *filp, unsigned int cmd,
 			goto out;
 
 		cmd = F_SETLKW64;
-		file_lock->fl_flags |= FL_FILE_PVT;
+		file_lock->fl_flags |= FL_OFDLCK;
 		file_lock->fl_owner = (fl_owner_t)filp;
 		/* Fallthrough */
 	case F_SETLKW64:
@@ -2236,7 +2253,7 @@ static void lock_get_status(struct seq_file *f, struct file_lock *fl,
 	if (IS_POSIX(fl)) {
 		if (fl->fl_flags & FL_ACCESS)
 			seq_printf(f, "ACCESS");
-		else if (IS_FILE_PVT(fl))
+		else if (IS_OFDLCK(fl))
 			seq_printf(f, "OFDLCK");
 		else
 			seq_printf(f, "POSIX ");
