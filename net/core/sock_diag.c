@@ -67,7 +67,10 @@ int sock_diag_put_filterinfo(bool may_report_filterinfo, struct sock *sk,
 	filter = rcu_dereference(sk->sk_filter);
 	len = filter ? filter->len * sizeof(struct sock_filter) : 0;
 
-	attr = nla_reserve(skb, attrtype, len);
+	fprog = filter->prog->orig_prog;
+	flen = bpf_classic_proglen(fprog);
+
+	attr = nla_reserve(skb, attrtype, flen);
 	if (attr == NULL) {
 		err = -EMSGSIZE;
 		goto out;

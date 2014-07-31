@@ -56,8 +56,7 @@
 struct seccomp_filter {
 	atomic_t usage;
 	struct seccomp_filter *prev;
-	unsigned short len;  /* Instruction count */
-	struct sock_filter_int insnsi[];
+	struct bpf_prog *prog;
 };
 
 /* Limit any path through the tree to 256KB worth of instructions. */
@@ -195,7 +194,7 @@ static u32 seccomp_run_filters(int syscall)
 	 * value always takes priority (ignoring the DATA).
 	 */
 	for (; f; f = f->prev) {
-		u32 cur_ret = sk_run_filter_int_seccomp(&sd, f->insnsi);
+		u32 cur_ret = BPF_PROG_RUN(f->prog, (void *)&sd);
 		
 		if ((cur_ret & SECCOMP_RET_ACTION) < (ret & SECCOMP_RET_ACTION))
 			ret = cur_ret;
@@ -404,12 +403,20 @@ static struct seccomp_filter * seccomp_prepare_filter(struct sock_fprog *fprog)
         if (!filter)
                 goto free_prog;
  
-        ret = sk_convert_filter(fp, fprog->len, filter->insnsi, &new_len);
-	if (ret)
+	filter->prog = kzalloc(bpf_prog_size(new_len),
+			      GFP_KERNEL|__GFP_NOWARN);
+	if (!filter->prog)
 		goto free_filter;
 
-       atomic_set(&filter->usage, 1);
-       filter->len = new_len;
+       ret = bpf_convert_filter(fp, fprog->len, filter->prog->insnsi, &new_len);
+       if (ret)
+               goto free_filter_prog;
+        kfree(fp);
+
+	atomic_set(&filter->usage, 1);
+	filter->prog->len = new_len;
+
+	bpf_prog_select_runtime(filter->prog);
 
 	return filter;
 
@@ -520,6 +527,7 @@ void put_seccomp_filter(struct task_struct *tsk)
 	while (orig && atomic_dec_and_test(&orig->usage)) {
 		struct seccomp_filter *freeme = orig;
 		orig = orig->prev;
+		bpf_prog_free(freeme->prog);
 		seccomp_filter_free(freeme);
 	}
 }
