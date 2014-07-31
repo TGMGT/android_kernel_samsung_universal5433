@@ -349,8 +349,7 @@ static inline unsigned int bpf_prog_size(unsigned int proglen)
 		   offsetof(struct bpf_prog, insns[proglen]));
 }
 
-#define sk_filter_proglen(fprog)			\
-		(fprog->len * sizeof(fprog->filter[0]))
+#define bpf_classic_proglen(fprog) (fprog->len * sizeof(fprog->filter[0]))
 
 #ifdef CONFIG_DEBUG_SET_MODULE_RONX
 static inline void bpf_prog_lock_ro(struct bpf_prog *fp)
