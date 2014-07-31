@@ -18,7 +18,7 @@
  * 2 of the License, or (at your option) any later version.
  *
  * Andi Kleen - Fix a few bad bugs and races.
- * Kris Katterjohn - Added many additional checks in sk_chk_filter()
+ * Kris Katterjohn - Added many additional checks in bpf_check_classic()
  */
 
 #include <linux/module.h>
@@ -730,7 +730,7 @@ error:
 }
 
 /**
- *	sk_chk_filter - verify socket filter code
+ *	bpf_check_classic - verify socket filter code
  *	@filter: filter to verify
  *	@flen: length of filter
  *
@@ -743,7 +743,7 @@ error:
  *
  * Returns 0 if the rule set is legal or -EINVAL if not.
  */
-int sk_chk_filter(struct sock_filter *filter, unsigned int flen)
+int bpf_check_classic(const struct sock_filter *filter, unsigned int flen)
 {
 	/*
 	 * Valid instructions are initialized to non-0.
