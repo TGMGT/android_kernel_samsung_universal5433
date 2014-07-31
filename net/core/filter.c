@@ -1045,7 +1045,7 @@ static struct bpf_prog *bpf_migrate_filter(struct bpf_prog *fp)
 		/* 2nd sk_convert_filter() can fail only if it fails
 		 * to allocate memory, remapping must succeed. Note,
 		 * that at this time old_fp has already been released
-		 * by __sk_migrate_realloc().
+		 * by krealloc().
 		 */
 		goto out_err_free;
 
@@ -1185,6 +1185,13 @@ int sk_attach_filter(struct sock_fprog *fprog, struct sock *sk)
 		return -ENOMEM;
 	}
 	fp->prog = prog;
+
+	atomic_set(&fp->refcnt, 0);
+
+	if (!sk_filter_charge(sk, fp)) {
+		__sk_filter_release(fp);
+		return -ENOMEM;
+	}
 
 	old_fp = rcu_dereference_protected(sk->sk_filter,
 					   sock_owned_by_user(sk));
