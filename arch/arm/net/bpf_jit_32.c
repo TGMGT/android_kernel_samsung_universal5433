@@ -941,5 +941,7 @@ void bpf_jit_free(struct bpf_prog *fp)
 
 		INIT_WORK(work, bpf_jit_free_worker);
 		schedule_work(work);
+	} else {
+		bpf_prog_unlock_free(fp);
 	}
 }
