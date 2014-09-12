@@ -87,26 +87,6 @@ int sk_filter_trim_cap(struct sock *sk, struct sk_buff *skb, unsigned int cap)
 }
 EXPORT_SYMBOL(sk_filter_trim_cap);
 
-/* Helper to find the offset of pkt_type in sk_buff structure. We want
- * to make sure its still a 3bit field starting at a byte boundary;
- * taken from arch/x86/net/bpf_jit_comp.c.
- */
-#define PKT_TYPE_MAX	7
-static unsigned int pkt_type_offset(void)
-{
-	struct sk_buff skb_probe = { .pkt_type = ~0, };
-	u8 *ct = (u8 *) &skb_probe;
-	unsigned int off;
-
-	for (off = 0; off < sizeof(struct sk_buff); off++) {
-		if (ct[off] == PKT_TYPE_MAX)
-			return off;
-	}
-
-	pr_err_once("Please fix %s, as pkt_type couldn't be found!\n", __func__);
-	return -1;
-}
-
 static u64 __skb_get_pay_offset(u64 ctx, u64 A, u64 X, u64 r4, u64 r5)
 {
 	struct sk_buff *skb = (struct sk_buff *)(long) ctx;
@@ -188,17 +168,13 @@ static bool convert_bpf_extensions(struct sock_filter *fp,
 		break;
 
 	case SKF_AD_OFF + SKF_AD_PKTTYPE:
-		insn->code = BPF_LDX | BPF_MEM | BPF_B;
-		insn->a_reg = A_REG;
-		insn->x_reg = CTX_REG;
-		insn->off = pkt_type_offset();
-		if (insn->off < 0)
-			return false;
+		*insn++ = BPF_LDX_MEM(BPF_B, BPF_REG_A, BPF_REG_CTX,
+				      PKT_TYPE_OFFSET());
+		*insn = BPF_ALU32_IMM(BPF_AND, BPF_REG_A, PKT_TYPE_MAX);
+#ifdef __BIG_ENDIAN_BITFIELD
 		insn++;
-
-		insn->code = BPF_ALU | BPF_AND | BPF_K;
-		insn->a_reg = A_REG;
-		insn->imm = PKT_TYPE_MAX;
+                *insn = BPF_ALU32_IMM(BPF_RSH, BPF_REG_A, 5);
+#endif
 		break;
 
 	case SKF_AD_OFF + SKF_AD_IFINDEX:
