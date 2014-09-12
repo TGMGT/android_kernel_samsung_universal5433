@@ -144,6 +144,11 @@ check_stack(unsigned long ip, unsigned long *stack)
 			i++;
 	}
 
+	if (*end_of_stack(current) != STACK_END_MAGIC) {
+		print_max_stack();
+		BUG();
+	}
+
  out:
 	arch_spin_unlock(&max_stack_lock);
 	local_irq_restore(flags);
