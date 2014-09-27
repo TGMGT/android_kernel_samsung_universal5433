@@ -2406,13 +2406,15 @@ static void __d_move(struct dentry *dentry, struct dentry *target,
 	switch_names(dentry, target);
 	swap(dentry->d_name.hash, target->d_name.hash);
 
-	/* ... and switch the parents */
+	/* ... and switch them in the tree */
 	if (IS_ROOT(dentry)) {
+		/* splicing a tree */
 		dentry->d_flags |= DCACHE_RCUACCESS;
 		dentry->d_parent = target->d_parent;
 		target->d_parent = target;
 		INIT_LIST_HEAD(&target->d_child);
 	} else {
+		/* swapping two dentries */
 		swap(dentry->d_parent, target->d_parent);
 		
 		/* Safely unlinks from old parent and links to the new parent */
@@ -2527,46 +2529,71 @@ out_err:
 	return ret;
 }
 
-/*
- * Prepare an anonymous dentry for life in the superblock's dentry tree as a
- * named dentry in place of the dentry to be replaced.
- * returns with anon->d_lock held!
+/**
+ * d_splice_alias - splice a disconnected dentry into the tree if one exists
+ * @inode:  the inode which may have a disconnected dentry
+ * @dentry: a negative dentry which we want to point to the inode.
+ *
+ * If inode is a directory and has an IS_ROOT alias, then d_move that in
+ * place of the given dentry and return it, else simply d_add the inode
+ * to the dentry and return NULL.
+ *
+ * If a non-IS_ROOT directory is found, the filesystem is corrupt, and
+ * we should error out: directories can't have multiple aliases.
+ *
+ * This is needed in the lookup routine of any filesystem that is exportable
+ * (via knfsd) so that we can build dcache paths to directories effectively.
+ *
+ * If a dentry was found and moved, then it is returned.  Otherwise NULL
+ * is returned.  This matches the expected return value of ->lookup.
+ *
+ * Cluster filesystems may call this function with a negative, hashed dentry.
+ * In that case, we know that the inode will be a regular file, and also this
+ * will only occur during atomic_open. So we need to check for the dentry
+ * being already hashed only in the final case.
  */
-static void __d_materialise_dentry(struct dentry *dentry, struct dentry *anon)
+struct dentry *d_splice_alias(struct inode *inode, struct dentry *dentry)
 {
-	struct dentry *dparent;
+	struct dentry *new = NULL;
 
-	dentry_lock_for_move(anon, dentry);
+	if (IS_ERR(inode))
+		return ERR_CAST(inode);
 
-	write_seqcount_begin(&dentry->d_seq);
-	write_seqcount_begin(&anon->d_seq);
-
-	dparent = dentry->d_parent;
-
-	switch_names(dentry, anon);
-	swap(dentry->d_name.hash, anon->d_name.hash);
-
-	dentry->d_flags |= DCACHE_RCUACCESS;
-	dentry->d_parent = dentry;
-	list_del_init(&dentry->d_child);
-	anon->d_parent = dparent;
-	if (likely(!d_unhashed(anon))) {
-		hlist_bl_lock(&anon->d_sb->s_anon);
-		__hlist_bl_del(&anon->d_hash);
-		anon->d_hash.pprev = NULL;
-		hlist_bl_unlock(&anon->d_sb->s_anon);
+	if (inode && S_ISDIR(inode->i_mode)) {
+		spin_lock(&inode->i_lock);
+		new = __d_find_any_alias(inode);
+		if (new) {
+			if (!IS_ROOT(new)) {
+				spin_unlock(&inode->i_lock);
+				dput(new);
+				return ERR_PTR(-EIO);
+			}
+			if (d_ancestor(new, dentry)) {
+				spin_unlock(&inode->i_lock);
+				dput(new);
+				return ERR_PTR(-EIO);
+			}
+			write_seqlock(&rename_lock);
+			__d_move(new, dentry);
+			write_sequnlock(&rename_lock);
+			spin_unlock(&inode->i_lock);
+			security_d_instantiate(new, inode);
+			iput(inode);
+		} else {
+			/* already taking inode->i_lock, so d_add() by hand */
+			__d_instantiate(dentry, inode);
+			spin_unlock(&inode->i_lock);
+			security_d_instantiate(dentry, inode);
+			d_rehash(dentry);
+		}
+	} else {
+		d_instantiate(dentry, inode);
+		if (d_unhashed(dentry))
+			d_rehash(dentry);
 	}
-	list_move(&anon->d_child, &dparent->d_subdirs);
-
-	write_seqcount_end(&dentry->d_seq);
-	write_seqcount_end(&anon->d_seq);
-
-	dentry_unlock_parents_for_move(anon, dentry);
-	spin_unlock(&dentry->d_lock);
-
-	/* anon->d_lock still locked, returns locked */
-	anon->d_flags &= ~DCACHE_DISCONNECTED;
+	return new;
 }
+EXPORT_SYMBOL(d_splice_alias);
 
 /**
  * d_materialise_unique - introduce an inode into the tree
@@ -2608,7 +2635,7 @@ struct dentry *d_materialise_unique(struct dentry *dentry, struct inode *inode)
 			} else if (IS_ROOT(alias)) {
 				/* Is this an anonymous mountpoint that we
 				 * could splice into our tree? */
-				__d_materialise_dentry(dentry, alias);
+				__d_move(alias, dentry, NULL);
 				write_sequnlock(&rename_lock);
 				goto found;
 			} else {
