@@ -2419,7 +2419,7 @@ static void __d_move(struct dentry *dentry, struct dentry *target,
 		dentry->d_flags |= DCACHE_RCUACCESS;
 		dentry->d_parent = target->d_parent;
 		target->d_parent = target;
-		INIT_LIST_HEAD(&target->d_child);
+		list_del_init(&target->d_child);
 	} else {
 		/* swapping two dentries */
 		swap(dentry->d_parent, target->d_parent);
