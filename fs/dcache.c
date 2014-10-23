@@ -2563,9 +2563,16 @@ struct dentry *d_splice_alias(struct inode *inode, struct dentry *dentry)
 		spin_lock(&inode->i_lock);
 		new = __d_find_any_alias(inode);
 		if (new) {
-			if (!IS_ROOT(new) || !(new->d_flags & DCACHE_DISCONNECTED)) {
+			if (!IS_ROOT(new)) {
 				spin_unlock(&inode->i_lock);
 				dput(new);
+				iput(inode);
+				return ERR_PTR(-EIO);
+			}
+			if (d_ancestor(new, dentry)) {
+				spin_unlock(&inode->i_lock);
+				dput(new);
+				iput(inode);
 				return ERR_PTR(-EIO);
 			}
 			write_seqlock(&rename_lock);
