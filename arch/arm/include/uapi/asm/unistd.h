@@ -413,6 +413,8 @@
 
 #define __NR_getrandom			(__NR_SYSCALL_BASE+384)
 #define __NR_memfd_create		(__NR_SYSCALL_BASE+385)
+#define __NR_bpf			(__NR_SYSCALL_BASE+386)
+#define __NR_execveat			(__NR_SYSCALL_BASE+387)
 
 #define __ARM_NR_BASE			(__NR_SYSCALL_BASE+0x0f0000)
 #define __ARM_NR_breakpoint		(__ARM_NR_BASE+1)
