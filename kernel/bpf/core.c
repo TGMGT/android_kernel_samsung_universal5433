@@ -950,6 +950,7 @@ int bpf_check_tail_call(const struct bpf_prog *fp)
 EXPORT_SYMBOL_GPL(bpf_check_tail_call);
 
 const struct bpf_func_proto bpf_get_prandom_u32_proto __weak;
+const struct bpf_func_proto bpf_get_smp_processor_id_proto __weak;
 
 /* To execute LD_ABS/LD_IND instructions __bpf_prog_run() may call
  * skb_copy_bits(), so provide a weak definition of it for NET-less config.
