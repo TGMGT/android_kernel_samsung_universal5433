@@ -113,6 +113,7 @@ enum bpf_map_type {
 	BPF_MAP_TYPE_UNSPEC,
 	BPF_MAP_TYPE_HASH,
 	BPF_MAP_TYPE_ARRAY,
+	BPF_MAP_TYPE_PROG_ARRAY,
 };
 
 enum bpf_prog_type {
@@ -170,6 +171,54 @@ enum bpf_func_id {
 	BPF_FUNC_probe_read,      /* int bpf_probe_read(void *dst, int size, void *src) */
 	BPF_FUNC_ktime_get_ns,    /* u64 bpf_ktime_get_ns(void) */
 	BPF_FUNC_trace_printk,    /* int bpf_trace_printk(const char *fmt, int fmt_size, ...) */
+	BPF_FUNC_get_prandom_u32, /* u32 prandom_u32(void) */
+	BPF_FUNC_get_smp_processor_id, /* u32 raw_smp_processor_id(void) */
+
+	/**
+	 * skb_store_bytes(skb, offset, from, len, flags) - store bytes into packet
+	 * @skb: pointer to skb
+	 * @offset: offset within packet from skb->mac_header
+	 * @from: pointer where to copy bytes from
+	 * @len: number of bytes to store into packet
+	 * @flags: bit 0 - if true, recompute skb->csum
+	 *         other bits - reserved
+	 * Return: 0 on success
+	 */
+	BPF_FUNC_skb_store_bytes,
+
+	/**
+	 * l3_csum_replace(skb, offset, from, to, flags) - recompute IP checksum
+	 * @skb: pointer to skb
+	 * @offset: offset within packet where IP checksum is located
+	 * @from: old value of header field
+	 * @to: new value of header field
+	 * @flags: bits 0-3 - size of header field
+	 *         other bits - reserved
+	 * Return: 0 on success
+	 */
+	BPF_FUNC_l3_csum_replace,
+
+	/**
+	 * l4_csum_replace(skb, offset, from, to, flags) - recompute TCP/UDP checksum
+	 * @skb: pointer to skb
+	 * @offset: offset within packet where TCP/UDP checksum is located
+	 * @from: old value of header field
+	 * @to: new value of header field
+	 * @flags: bits 0-3 - size of header field
+	 *         bit 4 - is pseudo header
+	 *         other bits - reserved
+	 * Return: 0 on success
+	 */
+	BPF_FUNC_l4_csum_replace,
+
+	/**
+	 * bpf_tail_call(ctx, prog_array_map, index) - jump into another BPF program
+	 * @ctx: context pointer passed to next program
+	 * @prog_array_map: pointer to map which type is BPF_MAP_TYPE_PROG_ARRAY
+	 * @index: index inside array that selects specific program to run
+	 * Return: 0 on success
+	 */
+	BPF_FUNC_tail_call,
 	__BPF_FUNC_MAX_ID,
 };
 
