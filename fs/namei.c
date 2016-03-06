@@ -1333,8 +1333,9 @@ static int follow_dotdot(struct nameidata *nd)
  *
  * dir->d_inode->i_mutex must be held
  */
-static struct dentry *lookup_dcache(struct qstr *name, struct dentry *dir,
-				    unsigned int flags, bool *need_lookup)
+static struct dentry *lookup_dcache(const struct qstr *name,
+				    struct dentry *dir,
+				    unsigned int flags)
 {
 	struct dentry *dentry;
 	int error;
@@ -1391,7 +1392,7 @@ static struct dentry *lookup_real(struct inode *dir, struct dentry *dentry,
 	return dentry;
 }
 
-static struct dentry *__lookup_hash(struct qstr *name,
+static struct dentry *__lookup_hash(const struct qstr *name,
 		struct dentry *base, unsigned int flags)
 {
 	bool need_lookup;
@@ -1503,29 +1504,15 @@ need_lookup:
 }
 
 /* Fast lookup failed, do it the slow way */
-static int lookup_slow(struct nameidata *nd, struct path *path)
+static struct dentry *lookup_slow(const struct qstr *name,
+				  struct dentry *dir,
+				  unsigned int flags)
 {
-	struct dentry *dentry, *parent;
-	int err;
-
-	parent = nd->path.dentry;
-	BUG_ON(nd->inode != parent->d_inode);
-
-	mutex_lock(&parent->d_inode->i_mutex);
-	dentry = __lookup_hash(&nd->last, parent, nd->flags);
-	mutex_unlock(&parent->d_inode->i_mutex);
-	if (IS_ERR(dentry))
-		return PTR_ERR(dentry);
-	path->mnt = nd->path.mnt;
-	path->dentry = dentry;
-	err = follow_managed(path, nd->flags);
-	if (unlikely(err < 0)) {
-		path_put_conditional(path, nd);
-		return err;
-	}
-	if (err)
-		nd->flags |= LOOKUP_JUMPED;
-	return 0;
+	struct dentry *dentry;
+	inode_lock(dir->d_inode);
+	dentry = __lookup_hash(name, dir, flags);
+	inode_unlock(dir->d_inode);
+	return dentry;
 }
 
 static inline int may_lookup(struct nameidata *nd)
@@ -1597,38 +1584,32 @@ static inline int walk_component(struct nameidata *nd, struct path *path,
 		}
 #endif
 		if (err < 0)
-			goto out_err;
-
-		err = lookup_slow(nd, path);
-		if (err < 0)
-			goto out_err;
-
-		inode = path->dentry->d_inode;
-	}
-	err = -ENOENT;
-	if (!inode || d_is_negative(path->dentry))
-		goto out_path_put;
-
-	if (should_follow_link(path->dentry, follow)) {
-		if (nd->flags & LOOKUP_RCU) {
-			if (unlikely(nd->path.mnt != path->mnt ||
-				     unlazy_walk(nd, path->dentry))) {
-				err = -ECHILD;
-				goto out_err;
-			}
+			return err;
+		path.dentry = lookup_slow(&nd->last, nd->path.dentry,
+					  nd->flags);
+		if (IS_ERR(path.dentry))
+			return PTR_ERR(path.dentry);
+		if (unlikely(d_is_negative(path.dentry))) {
+			dput(path.dentry);
+			return -ENOENT;
 		}
-		BUG_ON(inode != path->dentry->d_inode);
-		return 1;
+		path.mnt = nd->path.mnt;
+		err = follow_managed(&path, nd);
+		if (unlikely(err < 0))
+			return err;
+
+		seq = 0;	/* we are already out of RCU mode */
+		inode = d_backing_inode(path.dentry);
 	}
-	path_to_nameidata(path, nd);
+
+	if (flags & WALK_PUT)
+		put_link(nd);
+	err = should_follow_link(nd, &path, flags & WALK_GET, inode, seq);
+	if (unlikely(err))
+		return err;
+	path_to_nameidata(&path, nd);
 	nd->inode = inode;
 	return 0;
-
-out_path_put:
-	path_to_nameidata(path, nd);
-out_err:
-	terminate_walk(nd);
-	return err;
 }
 
 /*
@@ -2191,19 +2172,45 @@ EXPORT_SYMBOL(lookup_one_len);
 int user_path_at_empty(int dfd, const char __user *name, unsigned flags,
 		 struct path *path, int *empty)
 {
-	struct nameidata nd;
-	struct filename *tmp = getname_flags(name, flags, empty);
-	int err = PTR_ERR(tmp);
-	if (!IS_ERR(tmp)) {
+	struct qstr this;
+	unsigned int c;
+	int err;
+	struct dentry *ret;
 
-		BUG_ON(flags & LOOKUP_PARENT);
+	this.name = name;
+	this.len = len;
+	this.hash = full_name_hash(name, len);
+	if (!len)
+		return ERR_PTR(-EACCES);
 
-		err = filename_lookup(dfd, tmp, flags, &nd);
-		putname(tmp);
-		if (!err)
-			*path = nd.path;
+	if (unlikely(name[0] == '.')) {
+		if (len < 2 || (len == 2 && name[1] == '.'))
+			return ERR_PTR(-EACCES);
 	}
-	return err;
+
+	while (len--) {
+		c = *(const unsigned char *)name++;
+		if (c == '/' || c == '\0')
+			return ERR_PTR(-EACCES);
+	}
+	/*
+	 * See if the low-level filesystem might want
+	 * to use its own hash..
+	 */
+	if (base->d_flags & DCACHE_OP_HASH) {
+		int err = base->d_op->d_hash(base, &this);
+		if (err < 0)
+			return ERR_PTR(err);
+	}
+
+	err = inode_permission(base->d_inode, MAY_EXEC);
+	if (err)
+		return ERR_PTR(err);
+
+	ret = lookup_dcache(&this, base, 0);
+	if (!ret)
+		ret = lookup_slow(&this, base, 0);
+	return ret;
 }
 
 int user_path_at(int dfd, const char __user *name, unsigned flags,
