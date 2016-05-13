@@ -12,6 +12,10 @@
 #include <linux/linkage.h>
 #include <linux/printk.h>
 #include <linux/workqueue.h>
+#include <linux/sched.h>
+#include <linux/capability.h>
+
+#include <net/sch_generic.h>
 
 #include <asm/cacheflush.h>
 
@@ -39,6 +43,15 @@ struct bpf_prog_aux;
 #define BPF_REG_A	BPF_REG_0
 #define BPF_REG_X	BPF_REG_7
 #define BPF_REG_TMP	BPF_REG_8
+
+/* Kernel hidden auxiliary/helper register for hardening step.
+ * Only used by eBPF JITs. It's nothing more than a temporary
+ * register that JITs use internally, only that here it's part
+ * of eBPF instructions that have been rewritten for blinding
+ * constants. See JIT pre-step in bpf_jit_blind_constants().
+ */
+#define BPF_REG_AX		MAX_BPF_REG
+#define MAX_BPF_JIT_REG		(MAX_BPF_REG + 1)
 
 /* BPF program can access up to 512 bytes of stack space. */
 #define MAX_BPF_STACK	512
@@ -404,6 +417,9 @@ u64 __bpf_call_base(u64 r1, u64 r2, u64 r3, u64 r4, u64 r5);
 void bpf_int_jit_compile(struct bpf_prog *fp);
 
 #ifdef CONFIG_BPF_JIT
+extern int bpf_jit_enable;
+extern int bpf_jit_harden;
+
 typedef void (*bpf_jit_fill_hole_t)(void *area, unsigned int size);
 
 struct bpf_binary_header *
@@ -415,6 +431,9 @@ void bpf_jit_binary_free(struct bpf_binary_header *hdr);
 void bpf_jit_compile(struct bpf_prog *fp);
 void bpf_jit_free(struct bpf_prog *fp);
 
+struct bpf_prog *bpf_jit_blind_constants(struct bpf_prog *fp);
+void bpf_jit_prog_release_other(struct bpf_prog *fp, struct bpf_prog *fp_other);
+
 static inline void bpf_jit_dump(unsigned int flen, unsigned int proglen,
 				u32 pass, void *image)
 {
@@ -423,6 +442,33 @@ static inline void bpf_jit_dump(unsigned int flen, unsigned int proglen,
 	if (image)
 		print_hex_dump(KERN_ERR, "JIT code: ", DUMP_PREFIX_OFFSET,
 			       16, 1, image, proglen, false);
+}
+
+static inline bool bpf_jit_is_ebpf(void)
+{
+# ifdef CONFIG_HAVE_EBPF_JIT
+	return true;
+# else
+	return false;
+# endif
+}
+
+static inline bool bpf_jit_blinding_enabled(void)
+{
+	/* These are the prerequisites, should someone ever have the
+	 * idea to call blinding outside of them, we make sure to
+	 * bail out.
+	 */
+	if (!bpf_jit_is_ebpf())
+		return false;
+	if (!bpf_jit_enable)
+		return false;
+	if (!bpf_jit_harden)
+		return false;
+	if (bpf_jit_harden == 1 && capable(CAP_SYS_ADMIN))
+		return false;
+
+	return true;
 }
 #else
 static inline void bpf_jit_compile(struct bpf_prog *fp)
