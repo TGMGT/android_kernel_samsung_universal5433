@@ -340,12 +340,6 @@ struct bpf_prog {
 	};
 };
 
-int sk_filter_trim_cap(struct sock *sk, struct sk_buff *skb, unsigned int cap);
-static inline int sk_filter(struct sock *sk, struct sk_buff *skb)
-{
-	return sk_filter_trim_cap(sk, skb, 1);
-}
-
 struct sk_filter {
 	atomic_t	refcnt;
 	struct rcu_head	rcu;
@@ -382,7 +376,13 @@ static inline void bpf_prog_unlock_ro(struct bpf_prog *fp)
 }
 #endif /* CONFIG_DEBUG_SET_MODULE_RONX */
 
-int bpf_prog_select_runtime(struct bpf_prog *fp);
+int sk_filter_trim_cap(struct sock *sk, struct sk_buff *skb, unsigned int cap);
+static inline int sk_filter(struct sock *sk, struct sk_buff *skb)
+{
+	return sk_filter_trim_cap(sk, skb, 1);
+}
+
+struct bpf_prog *bpf_prog_select_runtime(struct bpf_prog *fp, int *err);
 void bpf_prog_free(struct bpf_prog *fp);
 
 int bpf_convert_filter(struct sock_filter *prog, int len,
@@ -415,7 +415,11 @@ bool sk_filter_charge(struct sock *sk, struct sk_filter *fp);
 void sk_filter_uncharge(struct sock *sk, struct sk_filter *fp);
 
 u64 __bpf_call_base(u64 r1, u64 r2, u64 r3, u64 r4, u64 r5);
-struct bpf_prog *bpf_int_jit_compile(struct bpf_prog *fp);
+
+struct bpf_prog *bpf_int_jit_compile(struct bpf_prog *prog);
+
+struct bpf_prog *bpf_patch_insn_single(struct bpf_prog *prog, u32 off,
+				       const struct bpf_insn *patch, u32 len);
 
 #ifdef CONFIG_BPF_JIT
 extern int bpf_jit_enable;

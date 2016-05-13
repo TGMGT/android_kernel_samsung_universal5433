@@ -896,19 +896,32 @@ static int check_tail_call(const struct bpf_prog *fp)
 /**
  *	bpf_prog_select_runtime - select execution runtime for BPF program
  *	@fp: bpf_prog populated with internal BPF program
+ *	@err: pointer to error variable
  *
  * try to JIT internal BPF program, if JIT is not available select interpreter
  * BPF program will be executed via BPF_PROG_RUN() macro
  */
-int bpf_prog_select_runtime(struct bpf_prog *fp)
+struct bpf_prog *bpf_prog_select_runtime(struct bpf_prog *fp, int *err)
 {
 	fp->bpf_func = (void *) __bpf_prog_run;
 
-	bpf_int_jit_compile(fp);
-	/* Lock whole bpf_prog as read-only */
+	/* eBPF JITs can rewrite the program in case constant
+	 * blinding is active. However, in case of error during
+	 * blinding, bpf_int_jit_compile() must always return a
+	 * valid program, which in this case would simply not
+	 * be JITed, but falls back to the interpreter.
+	 */
+	fp = bpf_int_jit_compile(fp);
 	bpf_prog_lock_ro(fp);
 
-	return check_tail_call(fp);
+	/* The tail call compatibility check can only be done at
+	 * this late stage as we need to determine, if we deal
+	 * with JITed or non JITed program concatenations and not
+	 * all eBPF JITs might immediately support all features.
+	 */
+	*err = bpf_check_tail_call(fp);
+
+	return fp;
 }
 EXPORT_SYMBOL_GPL(bpf_prog_select_runtime);
 
@@ -930,6 +943,11 @@ void bpf_prog_free(struct bpf_prog *fp)
 	schedule_work(&aux->work);
 }
 EXPORT_SYMBOL_GPL(bpf_prog_free);
+
+struct bpf_prog * __weak bpf_int_jit_compile(struct bpf_prog *prog)
+{
+	return prog;
+}
 
 /* To execute LD_ABS/LD_IND instructions __bpf_prog_run() may call
  * skb_copy_bits(), so provide a weak definition of it for NET-less config.
