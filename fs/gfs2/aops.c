@@ -275,6 +275,8 @@ static int gfs2_write_jdata_pagevec(struct address_space *mapping,
 	for(i = 0; i < nr_pages; i++) {
 		struct page *page = pvec->pages[i];
 
+		*done_index = page->index;
+
 		lock_page(page);
 
 		if (unlikely(page->mapping != mapping)) {
@@ -351,12 +353,16 @@ static int gfs2_write_cache_jdata(struct address_space *mapping,
 	}
 
 retry:
-	 while (!done && (index <= end) &&
-		(nr_pages = pagevec_lookup_tag(&pvec, mapping, &index,
-					       PAGECACHE_TAG_DIRTY,
-					       min(end - index, (pgoff_t)PAGEVEC_SIZE-1) + 1))) {
-		scanned = 1;
-		ret = gfs2_write_jdata_pagevec(mapping, wbc, &pvec, nr_pages, end);
+	if (wbc->sync_mode == WB_SYNC_ALL || wbc->tagged_writepages)
+		tag_pages_for_writeback(mapping, index, end);
+	done_index = index;
+	while (!done && (index <= end)) {
+		nr_pages = pagevec_lookup_range_tag(&pvec, mapping, &index, end,
+				tag, PAGEVEC_SIZE);
+		if (nr_pages == 0)
+			break;
+
+		ret = gfs2_write_jdata_pagevec(mapping, wbc, &pvec, nr_pages, end, &done_index);
 		if (ret)
 			done = 1;
 		if (ret > 0)
