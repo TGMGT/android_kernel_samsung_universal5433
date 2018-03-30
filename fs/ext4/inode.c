@@ -4044,7 +4044,7 @@ struct inode *ext4_iget(struct super_block *sb, unsigned long ino)
 
 	if ((ino == EXT4_ROOT_INO) && (raw_inode->i_links_count == 0)) {
 		EXT4_ERROR_INODE(inode, "root inode unallocated");
-		ret = -EIO;
+		ret = -EUCLEAN;
 		goto bad_inode;
 	}
 
