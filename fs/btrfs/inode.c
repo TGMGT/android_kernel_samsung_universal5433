@@ -5791,7 +5791,7 @@ static int btrfs_mknod(struct inode *dir, struct dentry *dentry,
 	else {
 		init_special_inode(inode, inode->i_mode, rdev);
 		btrfs_update_inode(trans, root, inode);
-		d_instantiate(dentry, inode);
+		d_instantiate_new(dentry, inode);
 	}
 out_unlock:
 	btrfs_end_transaction(trans, root);
@@ -5860,7 +5860,7 @@ static int btrfs_create(struct inode *dir, struct dentry *dentry,
 	inode->i_mapping->a_ops = &btrfs_aops;
 	inode->i_mapping->backing_dev_info = &root->fs_info->bdi;
 	BTRFS_I(inode)->io_tree.ops = &btrfs_extent_io_ops;
-	d_instantiate(dentry, inode);
+	d_instantiate_new(dentry, inode);
 
 out_unlock:
 	btrfs_end_transaction(trans, root);
@@ -5983,7 +5983,7 @@ static int btrfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 	if (err)
 		goto out_fail;
 
-	d_instantiate(dentry, inode);
+	d_instantiate_new(dentry, inode);
 	drop_on_err = 0;
 
 out_fail:
@@ -8577,7 +8577,7 @@ static int btrfs_symlink(struct inode *dir, struct dentry *dentry,
 
 out_unlock:
 	if (!err)
-		d_instantiate(dentry, inode);
+		d_instantiate_new(dentry, inode);
 	btrfs_end_transaction(trans, root);
 	if (drop_inode) {
 		inode_dec_link_count(inode);
