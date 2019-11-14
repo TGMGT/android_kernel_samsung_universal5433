@@ -202,13 +202,11 @@ static struct symbol *new_symbol(const char *name, struct module *module,
 				 enum export export)
 {
 	unsigned int hash;
-	struct symbol *new;
 
 	hash = tdb_hash(name) % SYMBOL_HASH_SIZE;
-	new = symbolhash[hash] = alloc_symbol(name, 0, symbolhash[hash]);
-	new->module = module;
-	new->export = export;
-	return new;
+	symbolhash[hash] = alloc_symbol(name, 0, symbolhash[hash]);
+
+	return symbolhash[hash];
 }
 
 static struct symbol *find_symbol(const char *name)
@@ -302,26 +300,15 @@ static struct symbol *sym_add_exported(const char *name, struct module *mod,
 
 	if (!s) {
 		s = new_symbol(name, mod, export);
-	} else {
-		if (!s->preloaded) {
-			/* 
-			 * Keep warning if vmlinux is involved, 
-			 * but skip if it's just a core "built-in" false positive from GCC 7.X
-			 */
-			if (is_vmlinux(mod->name) || is_vmlinux(s->module->name) ||
-			    (!strstr(mod->name, "built-in") && !strstr(s->module->name, "built-in"))) {
-				
-				warn("%s: '%s' exported twice. Previous export "
-				     "was in %s%s\n", mod->name, name,
-				     s->module->name,
-				     is_vmlinux(s->module->name) ?"":".ko");
-			}
-		} else {
-			/* In case Modules.symvers was out of date */
-			s->module = mod;
-		}
+	} else if (!external_module || is_vmlinux(s->module->name) ||
+		   s->module == mod) {
+		warn("%s: '%s' exported twice. Previous export was in %s%s\n",
+		     mod->name, name, s->module->name,
+		     is_vmlinux(s->module->name) ? "" : ".ko");
+		return s;
 	}
-	s->preloaded = 0;
+
+	s->module = mod;
 	s->vmlinux   = is_vmlinux(mod->name);
 	s->kernel    = 0;
 	s->export    = export;
