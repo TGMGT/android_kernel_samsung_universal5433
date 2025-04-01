@@ -4471,6 +4471,9 @@ ext4_fsblk_t ext4_mb_new_blocks(handle_t *handle,
 	if (IS_NOQUOTA(ar->inode))
 		ar->flags |= EXT4_MB_USE_ROOT_BLOCKS;
 
+	if (ext4_test_inode_flag(ar->inode, EXT4_INODE_CORE_FILE))
+		ar->flags |= EXT4_MB_USE_EXTRA_ROOT_BLOCKS;
+
 	if ((ar->flags & EXT4_MB_DELALLOC_RESERVED) == 0) {
 		/* Without delayed allocation we need to verify
 		 * there is enough free blocks to do block allocation
@@ -4851,9 +4854,9 @@ do_more:
 
 	if ((flags & EXT4_FREE_BLOCKS_METADATA) && ext4_handle_valid(handle)) {
 		struct ext4_free_data *new_entry;
-		/*
-		 * blocks being freed are metadata. these blocks shouldn't
-		 * be used until this transaction is committed
+ 		/*
+ 		 * blocks being freed are metadata. these blocks shouldn't
+ 		 * be used until this transaction is committed
 		 *
 		 * We use __GFP_NOFAIL because ext4_free_blocks() is not allowed
 		 * to fail.

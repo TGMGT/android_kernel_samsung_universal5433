@@ -381,7 +381,7 @@ static int __check_block_validity(struct inode *inode, const char *func,
 				struct ext4_map_blocks *map)
 {
 	if (!ext4_inode_block_valid(inode, map->m_pblk,
-				   map->m_len)) {
+				    map->m_len)) {
 		/* for debugging, sangwoo2.lee */
 		printk(KERN_ERR "printing inode..\n");
 		print_block_data(inode->i_sb, 0, (unsigned char *)inode,
