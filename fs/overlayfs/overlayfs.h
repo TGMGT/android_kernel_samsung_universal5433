@@ -47,7 +47,7 @@ static inline int ovl_do_rmdir(struct inode *dir, struct dentry *dentry)
 
 static inline int ovl_do_unlink(struct inode *dir, struct dentry *dentry)
 {
-	int err = vfs_unlink(dir, dentry);
+	int err = vfs_unlink(dir, dentry, NULL);
 	pr_debug("unlink(%pd2) = %i\n", dentry, err);
 	return err;
 }
@@ -55,7 +55,7 @@ static inline int ovl_do_unlink(struct inode *dir, struct dentry *dentry)
 static inline int ovl_do_link(struct dentry *old_dentry, struct inode *dir,
 			      struct dentry *new_dentry, bool debug)
 {
-	int err = vfs_link(old_dentry, dir, new_dentry);
+	int err = vfs_link(old_dentry, dir, new_dentry, NULL);
 	if (debug) {
 		pr_debug("link(%pd2, %pd2) = %i\n",
 			 old_dentry, new_dentry, err);
@@ -113,14 +113,7 @@ static inline int ovl_do_setxattr(struct dentry *dentry, const char *name,
 static inline int ovl_do_removexattr(struct dentry *dentry, const char *name)
 {
 	int err = vfs_removexattr(dentry, name);
-	pr_debug("removexattr(%pd2, \"%s\") = %i\n", dentry, name);
-	return err;
-}
-
-static inline int ovl_do_whiteout(struct inode *dir, struct dentry *dentry)
-{
-	int err = vfs_whiteout(dir, dentry);
-	pr_debug("whiteout(%pd2) = %i\n", dentry, err);
+	pr_debug("removexattr(%pd2, \"%s\") = %i\n", dentry, name, err);
 	return err;
 }
 
@@ -129,13 +122,23 @@ static inline int ovl_do_rename(struct inode *olddir, struct dentry *olddentry,
 				unsigned int flags)
 {
 	int err;
-	pr_debug("rename2 (%pd2, %pd2, 0x%x)\n", olddentry, newdentry, flags);
-	
-	err = vfs_rename(olddir, olddentry, newdir, newdentry, flags);
+
+	pr_debug("rename2(%pd2, %pd2, 0x%x)\n",
+		 olddentry, newdentry, flags);
+
+	err = vfs_rename(olddir, olddentry, newdir, newdentry, NULL, flags);
 
 	if (err) {
-		pr_debug("... rename2 (%pd2, %pd2, ...) = %i\n", olddentry, newdentry, err);
+		pr_debug("...rename2(%pd2, %pd2, ...) = %i\n",
+			 olddentry, newdentry, err);
 	}
+	return err;
+}
+
+static inline int ovl_do_whiteout(struct inode *dir, struct dentry *dentry)
+{
+	int err = vfs_whiteout(dir, dentry);
+	pr_debug("whiteout(%pd2) = %i\n", dentry, err);
 	return err;
 }
 

@@ -608,7 +608,7 @@ static int ovl_remove_upper(struct dentry *dentry, bool is_dir)
 		if (is_dir)
 			err = vfs_rmdir(dir, upper);
 		else
-			err = vfs_unlink(dir, upper);
+			err = vfs_unlink(dir, upper, NULL);
 		dput(upper);
 		ovl_dentry_version_inc(dentry->d_parent);
 	}
@@ -885,7 +885,9 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 				    flags);
 	} else {
 		BUG_ON(flags & ~RENAME_EXCHANGE);
-		err = vfs_rename(old_upperdir->d_inode, olddentry, new_upperdir->d_inode, newdentry, flags);
+		err = vfs_rename(old_upperdir->d_inode, olddentry,
+				 new_upperdir->d_inode, newdentry,
+				NULL, flags);
 	}
 
 	if (err) {
