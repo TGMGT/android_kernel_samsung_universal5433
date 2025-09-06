@@ -12297,27 +12297,74 @@ dhd_log_dump_write(int type, const char *fmt, ...)
 		return;
 	}
 
-	if (len >= DHD_LOG_DUMP_MAX_TEMP_BUFFER_SIZE) {
-		len = DHD_LOG_DUMP_MAX_TEMP_BUFFER_SIZE - 1;
-		tmp_buf[len] = '\0';
+	if (dhd_pktlog_write_file(&dhd->pub)) {
+		DHD_ERROR(("%s: writing pktlog dump to the file failed\n", __FUNCTION__));
+		return;
+	}
+}
+
+void
+dhd_schedule_pktlog_dump(dhd_pub_t *dhdp)
+{
+	dhd_deferred_schedule_work(dhdp->info->dhd_deferred_wq,
+			(void*)NULL, DHD_WQ_WORK_PKTLOG_DUMP,
+			dhd_pktlog_dump, DHD_WQ_WORK_PRIORITY_HIGH);
+}
+#endif /* DHD_PKT_LOGGING */
+
+#ifdef DHD_DUMP_MNGR
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0))
+#define DHD_VFS_INODE(dir) (dir->d_inode)
+#else
+#define DHD_VFS_INODE(dir) d_inode(dir)
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0) */
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 13, 0))
+#define DHD_VFS_UNLINK(dir, b, c) vfs_unlink(DHD_VFS_INODE(dir), b)
+#else
+#define DHD_VFS_UNLINK(dir, b, c) vfs_unlink(DHD_VFS_INODE(dir), b, c)
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 13, 0) */
+
+static int
+dhd_file_delete(char *path)
+{
+	struct path file_path;
+	int err;
+	struct dentry *dir;
+
+	err = kern_path(path, 0, &file_path);
+
+	if (err < 0) {
+		return err;
+	}
+	if (FALSE ||
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 13, 0))
+			!d_is_file(file_path.dentry) ||
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(4, 0, 0))
+			d_really_is_negative(file_path.dentry)
+#endif /* LINUX_VERSION_CODE > KERNEL_VERSION(4, 0, 0) */
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 13, 0) */
+)
+	{
+		err = -EINVAL;
+	} else {
+		dir = dget_parent(file_path.dentry);
+
+		if (!IS_ERR(dir)) {
+			err = DHD_VFS_UNLINK(dir, file_path.dentry, NULL);
+			dput(dir);
+		} else {
+			err = PTR_ERR(dir);
+		}
 	}
 
-	/* make a critical section to eliminate race conditions */
-	spin_lock_irqsave(&dld_buf->lock, flags);
-	if (dld_buf->remain < len) {
-		dld_buf->wraparound = 1;
-		dld_buf->present = dld_buf->front;
-		dld_buf->remain = dld_buf_size[type];
+	path_put(&file_path);
+
+	if (err < 0) {
+		DHD_ERROR(("Failed to delete file: %s error: %d\n", path, err));
 	}
 
-	strncpy(dld_buf->present, tmp_buf, len);
-	dld_buf->remain -= len;
-	dld_buf->present += len;
-	spin_unlock_irqrestore(&dld_buf->lock, flags);
-
-	/* double check invalid memory operation */
-	ASSERT((unsigned long)dld_buf->present <= dld_buf->max);
-	va_end(args);
+	return err;
 }
 
 char*
