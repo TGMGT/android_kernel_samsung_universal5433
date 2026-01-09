@@ -2293,7 +2293,7 @@ static void switch_names(struct dentry *dentry, struct dentry *target)
 			dentry->d_name.name = dentry->d_iname;
 		} else {
 			/*
-			 * Both are internal
+			 * Both are internal.
 			 */
 			unsigned int i;
 			BUILD_BUG_ON(!IS_ALIGNED(DNAME_INLINE_LEN, sizeof(long)));
@@ -2412,12 +2412,11 @@ static void __d_move(struct dentry *dentry, struct dentry *target,
 		INIT_LIST_HEAD(&target->d_child);
 	} else {
 		swap(dentry->d_parent, target->d_parent);
-
-		/* And add them back to the (new) parent lists */
-		list_add(&target->d_child, &target->d_parent->d_subdirs);
+		list_move(&target->d_child, &target->d_parent->d_subdirs);
+		list_move(&dentry->d_child, &dentry->d_parent->d_subdirs);
+		if (exchange)
+			fsnotify_d_move(dentry);
 	}
-
-	list_add(&dentry->d_child, &dentry->d_parent->d_subdirs);
 
 	write_seqcount_end(&target->d_seq);
 	write_seqcount_end(&dentry->d_seq);
