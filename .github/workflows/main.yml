@@ -1,0 +1,63 @@
+name: Build gts210ltexx Kernel (Universal5433)
+
+on:
+  workflow_dispatch: # Allows manual trigger from the "Actions" tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential bison flex libssl-dev libcrypt-dev cmake device-tree-compiler
+
+      - name: Setup ARM32 Toolchain
+        run: |
+          # Clones the specific LineageOS GCC 4.9 toolchain for 32-bit ARM
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 toolchain
+          echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
+
+      - name: Build Kernel and DTBs
+        run: |
+          export ARCH=arm
+          export CROSS_COMPILE=arm-linux-androideabi-
+          
+          # Load your specific device config
+          make lineage_gts210ltexx_defconfig
+          
+          # Build the zImage and force the compilation of DTBs
+          make -j$(nproc) zImage
+          make -j$(nproc) dtbs || make -j$(nproc) arch/arm/boot/dts/
+
+      - name: Filter DTBs and Create zImage-dtb
+        run: |
+          # Step: Pick only LTE DTBs using the underscore to avoid wifi versions
+          mkdir -p filtered_dtbs
+          cp arch/arm/boot/dts/exynos5433-gts210_*.dtb filtered_dtbs/
+          
+          # Step: Concatenate zImage with the filtered DTBs
+          cat arch/arm/boot/zImage filtered_dtbs/exynos5433-gts210_*.dtb > zImage-dtb
+
+      - name: Build and Run dtbTool
+        run: |
+          # Download and compile the Exynos-specific dtbTool
+          git clone https://github.com dtbtool_src
+          cd dtbtool_src
+          mkdir build && cd build
+          cmake ..
+          make
+          
+          # Use the compiled tool to create dt.img from your filtered DTBs
+          ./dtbtool -o ../../dt.img ../../filtered_dtbs/
+
+      - name: Upload Build Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: gts210ltexx-kernel-assets
+          path: |
+            zImage-dtb
+            dt.img
