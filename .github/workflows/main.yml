@@ -21,10 +21,23 @@ jobs:
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 toolchain
           echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
 
+      - name: Setup ccache Persistence
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-kernel-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-kernel-ccache-
+          size: 1G
+
       - name: Build Kernel and DTBs
         run: |
           export ARCH=arm
-          export CROSS_COMPILE=arm-linux-androideabi-
+          export CROSS_COMPILE="ccache arm-linux-androideabi-"
+          export HOSTCC="ccache gcc"
+          export HOSTCXX="ccache g++"
+          
+          ccache -z
           
           # Load your specific device config
           make lineage_gts210ltexx_defconfig
@@ -32,6 +45,8 @@ jobs:
           # Build the zImage and force the compilation of DTBs
           make -j$(nproc) zImage
           make -j$(nproc) dtbs
+
+          ccache -s
 
       - name: Filter DTBs and Create zImage-dtb
         run: |
