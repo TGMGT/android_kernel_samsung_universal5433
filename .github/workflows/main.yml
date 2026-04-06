@@ -21,14 +21,11 @@ jobs:
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 toolchain
           echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
 
-      - name: Setup ccache Persistence
-        uses: actions/cache@v4
+      - name: Setup ccache
+        uses: Chocobo1/setup-ccache-action@v1
         with:
-           path: ~/.ccache
-           key: ${{ runner.os }}-kernel-ccache-${{ github.sha }}
-           restore-keys: |
-            ${{ runner.os }}-kernel-ccache-
-
+         ccache_options: |
+          max_size=1.0G
 
       - name: Build Kernel and DTBs
         run: |
@@ -36,8 +33,6 @@ jobs:
           export CROSS_COMPILE="ccache arm-linux-androideabi-"
           export HOSTCC="ccache gcc"
           export HOSTCXX="ccache g++"
-
-          ccache -M 1G
           
           ccache -z
           
