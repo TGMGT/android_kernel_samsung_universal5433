@@ -45,7 +45,7 @@ jobs:
       - name: Build and Run dtbTool
         run: |
           # Download and compile the Exynos-specific dtbTool
-          git clone https://github.com dtbtool_src
+          git clone https://github.com/dsankouski/dtbtool-exynos.git dtbtool_src
           cd dtbtool_src
           mkdir build && cd build
           cmake ..
