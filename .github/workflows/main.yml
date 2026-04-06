@@ -24,10 +24,11 @@ jobs:
       - name: Setup ccache Persistence
         uses: actions/cache@v4
         with:
-          path: ~/.ccache
-          key: ${{ runner.os }}-kernel-ccache-${{ github.sha }}
-          restore-keys: |
+           path: ~/.ccache
+           key: ${{ runner.os }}-kernel-ccache-${{ github.sha }}
+           restore-keys: |
             ${{ runner.os }}-kernel-ccache-
+
 
       - name: Build Kernel and DTBs
         run: |
