@@ -13,7 +13,7 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential bison flex libssl-dev libcrypt-dev cmake device-tree-compiler
+          sudo apt-get install -y bc build-essential bison flex libssl-dev libcrypt-dev cmake device-tree-compiler libfdt-dev
 
       - name: Setup ARM32 Toolchain
         run: |
@@ -31,7 +31,7 @@ jobs:
           
           # Build the zImage and force the compilation of DTBs
           make -j$(nproc) zImage
-          make -j$(nproc) dtbs || make -j$(nproc) arch/arm/boot/dts/
+          make -j$(nproc) dtbs
 
       - name: Filter DTBs and Create zImage-dtb
         run: |
