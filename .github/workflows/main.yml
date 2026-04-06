@@ -28,7 +28,6 @@ jobs:
           key: ${{ runner.os }}-kernel-ccache-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-kernel-ccache-
-          size: 1G
 
       - name: Build Kernel and DTBs
         run: |
@@ -36,6 +35,8 @@ jobs:
           export CROSS_COMPILE="ccache arm-linux-androideabi-"
           export HOSTCC="ccache gcc"
           export HOSTCXX="ccache g++"
+
+          ccache -M 1G
           
           ccache -z
           
