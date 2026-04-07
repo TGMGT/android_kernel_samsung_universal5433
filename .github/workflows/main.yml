@@ -62,7 +62,7 @@ jobs:
           gcc -O2 -Wall dtbtool-exynos.c -o dtbTool-exynos -lfdt
           
           # Use the compiled tool to create dt.img from your filtered DTBs
-          ./dtbTool-exynos -o $GITHUB_WORKSPACE/dt.img $GITHUB_WORKSPACE/filtered_dtbs/
+          ./dtbTool-exynos -o $GITHUB_WORKSPACE/dt.img $GITHUB_WORKSPACE/filtered_dtbs/*.dtb
           cd $GITHUB_WORKSPACE
 
       - name: Upload Build Results
