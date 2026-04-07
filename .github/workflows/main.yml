@@ -36,8 +36,6 @@ jobs:
           export HOSTCC="ccache gcc"
           export HOSTCXX="ccache g++"
           
-          ccache -z
-          
           # Load your specific device config
           make lineage_gts210ltexx_defconfig
           
