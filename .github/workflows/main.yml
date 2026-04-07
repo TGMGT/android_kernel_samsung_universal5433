@@ -50,24 +50,23 @@ jobs:
           # Step: Pick only LTE DTBs using the underscore to avoid wifi versions
           mkdir -p filtered_dtbs
           cp arch/arm/boot/dts/exynos5433-gts210_*.dtb filtered_dtbs/
-          
-          # Step: Concatenate zImage with the filtered DTBs
-          cat arch/arm/boot/zImage filtered_dtbs/exynos5433-gts210_*.dtb > zImage-dtb
 
+          cp arch/arm/boot/zImage zImage
+          
       - name: Build and Run dtbTool
         run: |
           # Download and compile the Exynos-specific dtbTool
           git clone https://github.com/dsankouski/dtbtool-exynos.git dtbtool_src
           cd dtbtool_src
-          make dtbTool-exynos
+          gcc -O2 -Wall dtbtool-exynos.c -o dtbTool-exynos -lfdt
           
           # Use the compiled tool to create dt.img from your filtered DTBs
-          ./dtbtool -o ../../dt.img ../../filtered_dtbs/
+          ./dtbTool-exynos -o ../../dt.img ../../filtered_dtbs/
 
       - name: Upload Build Results
         uses: actions/upload-artifact@v4
         with:
           name: gts210ltexx-kernel-assets
           path: |
-            zImage-dtb
+            zImage
             dt.img
