@@ -24,10 +24,10 @@ jobs:
           echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
 
       - name: Setup ccache
-        uses: Chocobo1/setup-ccache-action@v1
+        uses: hendrikmuhs/ccache-action@v1.2
         with:
-         ccache_options: |
-          max_size=1.0G
+           key: ${{ runner.os }}-ccache
+           max-size: 1G
 
       - name: Build Kernel and DTBs
         run: |
