@@ -55,13 +55,15 @@ jobs:
           
       - name: Build and Run dtbTool
         run: |
+          ls ../filtered_dtbs/
           # Download and compile the Exynos-specific dtbTool
           git clone https://github.com/dsankouski/dtbtool-exynos.git dtbtool_src
           cd dtbtool_src
           gcc -O2 -Wall dtbtool-exynos.c -o dtbTool-exynos -lfdt
           
           # Use the compiled tool to create dt.img from your filtered DTBs
-          ./dtbTool-exynos -o ../../dt.img ../../filtered_dtbs/
+          ./dtbTool-exynos -o ../dt.img ../filtered_dtbs
+          cd ..
 
       - name: Upload Build Results
         uses: actions/upload-artifact@v4
