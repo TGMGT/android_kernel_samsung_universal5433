@@ -510,6 +510,10 @@ void kernel_power_off(void)
 EXPORT_SYMBOL_GPL(kernel_power_off);
 
 static DEFINE_MUTEX(reboot_mutex);
+ 
+#ifdef CONFIG_KSU_MANUAL_HOOK
+    extern int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user **arg);
+#endif
 
 /*
  * Reboot system call: for obvious reasons only root may call it,
@@ -525,6 +529,10 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 	struct pid_namespace *pid_ns = task_active_pid_ns(current);
 	char buffer[256];
 	int ret = 0;
+	
+	#ifdef CONFIG_KSU_MANUAL_HOOK
+        ksu_handle_sys_reboot(magic1, magic2, cmd, &arg);
+    #endif
 
 	/* We only trust the superuser with rebooting the system. */
 	if (!ns_capable(pid_ns->user_ns, CAP_SYS_BOOT))
@@ -923,6 +931,9 @@ error:
 	return retval;
 }
 
+#ifdef CONFIG_KSU_MANUAL_HOOK
+    extern int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid);
+#endif
 
 /*
  * This function implements a generic ability to update ruid, euid,
@@ -935,6 +946,10 @@ SYSCALL_DEFINE3(setresuid, uid_t, ruid, uid_t, euid, uid_t, suid)
 	struct cred *new;
 	int retval;
 	kuid_t kruid, keuid, ksuid;
+     	
+	#ifdef CONFIG_KSU_MANUAL_HOOK
+        (void)ksu_handle_setresuid(ruid, euid, suid);
+    #endif
 
 #if defined CONFIG_SEC_RESTRICT_SETUID
 	if(ruid == 0 || euid == 0 || suid == 0)
