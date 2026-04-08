@@ -40,8 +40,7 @@ jobs:
           make lineage_gts210ltexx_defconfig
           
           # Build the zImage and force the compilation of DTBs
-          make -j$(nproc) zImage
-          make -j$(nproc) dtbs
+          make -j$(nproc) zImage Image dtbs
 
           ccache -s
 
@@ -52,6 +51,7 @@ jobs:
           cp arch/arm/boot/dts/exynos5433-gts210_*.dtb filtered_dtbs/
 
           cp arch/arm/boot/zImage zImage
+          cp arch/arm/boot/Image Image
           
       - name: Build and Run dtbTool
         run: |
@@ -70,5 +70,6 @@ jobs:
         with:
           name: gts210ltexx-kernel-assets
           path: |
+            Image
             zImage
             dt.img
