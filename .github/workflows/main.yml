@@ -23,9 +23,11 @@ jobs:
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 toolchain
           echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
 
-      - uses: ChimeHQ/ccache-action@v1
+      - name: Setup Ccache
+        uses: jianmingyong/ccache-action@v1
         with:
-          size: 5G
+          ccache-key-prefix: ccache_cache_${{ matrix.os }}
+          max-size: 5G
 
       - name: Build Kernel and DTBs
         run: |
