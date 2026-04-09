@@ -44,7 +44,7 @@ jobs:
 
           ccache -s
 
-      - name: Filter DTBs and Create zImage-dtb
+      - name: Filter DTBs
         run: |
           # Step: Pick only LTE DTBs using the underscore to avoid wifi versions
           mkdir -p filtered_dtbs
