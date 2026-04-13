@@ -363,7 +363,7 @@ int gpu_dvfs_governor_init(struct kbase_device *kbdev)
  * This function is required by the r22p0 core driver to report usage
  * back to the platform's DVFS governor.
  */
-int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 util_gl_share, u32 util_cl_share)
+int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 util_gl_share, u32 util_cl_share[2])
 {
     if (gpu_dvfs_get_next_level) {
         /* We pass the utilization to the governor pointer */
