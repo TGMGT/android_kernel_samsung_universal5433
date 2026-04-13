@@ -512,7 +512,10 @@ ifeq ($(config-targets),1)
 # Read arch specific Makefile to set KBUILD_DEFCONFIG as needed.
 # KBUILD_DEFCONFIG may point out an alternative default configuration
 # used for 'make defconfig'
-KBUILD_CFLAGS	+= -mcpu=cortex-a57.cortex-a53+crc+crypto
+KBUILD_CFLAGS   += -mcpu=cortex-a57.cortex-a53+crc+crypto \
+                   -mtune=cortex-a57.cortex-a53 \
+                   -mfpu=neon-vfpv4 -mfloat-abi=softfp \
+                   -ffast-math -ftree-vectorize
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
 export KBUILD_DEFCONFIG KBUILD_KCONFIG
@@ -593,7 +596,7 @@ endif # $(dot-config)
 all: vmlinux
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
+KBUILD_CFLAGS   += -Os -ffast-math -ftree-vectorize $(call cc-disable-warning,maybe-uninitialized,)
 else
 KBUILD_CFLAGS	+= -O2
 endif
