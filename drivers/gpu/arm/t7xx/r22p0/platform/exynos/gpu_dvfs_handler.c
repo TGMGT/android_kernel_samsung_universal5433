@@ -25,7 +25,7 @@
 extern struct kbase_device *pkbdev;
 
 #ifdef CONFIG_MALI_DVFS
-int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation)
+int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 util_gl_share, u32 util_cl_share[2])
 {
 	struct exynos_context *platform;
 
