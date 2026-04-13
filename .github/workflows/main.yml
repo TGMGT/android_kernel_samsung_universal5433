@@ -26,7 +26,7 @@ jobs:
       - name: Setup ARM32 Toolchain
         run: |
           # Clones the specific LineageOS GCC 4.9 toolchain for 32-bit ARM
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 toolchain
+          git clone --depth=1 https://github.com/YumeMichi/linaro-arm-eabi-4.9 toolchain
           echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
 
       - name: Setup Ccache
