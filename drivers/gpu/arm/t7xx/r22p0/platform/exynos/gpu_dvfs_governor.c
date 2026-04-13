@@ -28,7 +28,7 @@
 
 #ifdef CONFIG_MALI_DVFS
 typedef void (*GET_NEXT_LEVEL)(struct exynos_context *platform, int utilization);
-GET_NEXT_LEVEL gpu_dvfs_get_next_level;
+extern GET_NEXT_LEVEL gpu_dvfs_get_next_level;
 
 static int gpu_dvfs_governor_default(struct exynos_context *platform, int utilization);
 static int gpu_dvfs_governor_interactive(struct exynos_context *platform, int utilization);
@@ -351,4 +351,23 @@ int gpu_dvfs_governor_init(struct kbase_device *kbdev)
 #endif /* CONFIG_MALI_DVFS && CONFIG_CPU_THERMAL_IPA */
 
 	return 0;
+}
+
+/**
+ * kbase_platform_dvfs_event - Update GPU utilization for DVFS
+ * @kbdev: The kbase device
+ * @utilisation: Total GPU utilization
+ * @util_gl_share: OpenGL utilization share
+ * @util_cl_share: OpenCL utilization share
+ *
+ * This function is required by the r22p0 core driver to report usage
+ * back to the platform's DVFS governor.
+ */
+int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 util_gl_share, u32 util_cl_share)
+{
+    if (gpu_dvfs_get_next_level) {
+        /* We pass the utilization to the governor pointer */
+        gpu_dvfs_get_next_level(kbdev->platform_context, (int)utilisation);
+    }
+    return 0;
 }
