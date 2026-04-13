@@ -25,9 +25,10 @@ jobs:
 
       - name: Setup ARM32 Toolchain
         run: |
-          # Clones the specific LineageOS GCC 4.9 toolchain for 32-bit ARM
+          # Clones the specific Linaro GCC 4.9 toolchain for 32-bit ARM
           git clone --depth=1 https://github.com/YumeMichi/linaro-arm-eabi-4.9 toolchain
-          echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
+          sudo cp -r toolchain/* /usr/local/
+          sudo ldconfig
 
       - name: Setup Ccache
         uses: jianmingyong/ccache-action@v1
@@ -38,7 +39,7 @@ jobs:
       - name: Build Kernel and DTBs
         run: |
           export ARCH=arm
-          export CROSS_COMPILE="ccache arm-linux-androideabi-"
+          export CROSS_COMPILE="ccache arm-eabi-"
           export HOSTCC="ccache gcc"
           export HOSTCXX="ccache g++"
           
