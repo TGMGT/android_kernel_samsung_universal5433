@@ -317,8 +317,7 @@ void kbase_pm_get_dvfs_action(struct kbase_device *kbdev)
 
 out:
 #ifdef CONFIG_MALI_MIDGARD_DVFS
-	kbase_platform_dvfs_event(kbdev, utilisation, util_gl_share,
-								util_cl_share);
+	kbase_platform_dvfs_event(kbdev, utilisation, 0, util_gl_share, util_cl_share);
 #endif				/*CONFIG_MALI_MIDGARD_DVFS */
 
 	kbase_pm_reset_dvfs_utilisation_unlocked(kbdev, now);
