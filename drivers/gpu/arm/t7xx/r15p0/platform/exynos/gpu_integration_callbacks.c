@@ -904,7 +904,7 @@ static void dvfs_callback(struct work_struct *data)
 	platform = (struct exynos_context *)kbdev->platform_context;
 	KBASE_DEBUG_ASSERT(platform != NULL);
 
-	kbase_platform_dvfs_event(metrics->kbdev, 0, 0);
+	kbase_platform_dvfs_event(metrics->kbdev, 0, 0, 0, NULL);
 
 	spin_lock_irqsave(&metrics->lock, flags);
 
