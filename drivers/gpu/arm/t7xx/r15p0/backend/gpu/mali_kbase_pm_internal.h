@@ -515,7 +515,7 @@ void kbase_pm_reset_dvfs_utilisation(struct kbase_device *kbdev);
  * Return:         Returns 0 on failure and non zero on success.
  */
 
-int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation,
+int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 core_mask,
 	u32 util_gl_share, u32 util_cl_share[2]);
 #endif
 
