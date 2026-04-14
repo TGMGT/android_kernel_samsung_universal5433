@@ -37,7 +37,7 @@ typedef enum {
 	GPU_DVFS_BOOST_END,
 } gpu_dvfs_boost_command;
 
-int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 core_mask);
+int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 core_mask, u32 util_gl_share, u32 util_cl_share[2]);
 int gpu_dvfs_handler_init(struct kbase_device *kbdev);
 int gpu_dvfs_handler_deinit(struct kbase_device *kbdev);
 
