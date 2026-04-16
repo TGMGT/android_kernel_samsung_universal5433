@@ -107,7 +107,7 @@ static struct kobject *dyn_fsync_kobj;
 extern void sync_filesystems(int wait);
 static void dyn_fsync_force_flush(void)
 {
-
+    wakeup_flusher_threads(0, WB_REASON_FREE_MORE_MEM);
 }
 
 static void dyn_fsync_suspend(struct power_suspend *p)
