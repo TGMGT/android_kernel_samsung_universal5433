@@ -41,7 +41,6 @@ jobs:
           ccache --set-config=base_dir=${{ github.workspace }}
           ccache --set-config=hash_dir=false
           ccache --set-config=compiler_check=content
-          ccache --set-config=hash_alias=1
           ccache --set-config=sloppiness=file_macro,time_macros,include_file_mtime,locale
           
           export ARCH=arm
