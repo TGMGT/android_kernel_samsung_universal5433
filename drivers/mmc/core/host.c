@@ -31,6 +31,7 @@
 #include "host.h"
 
 #define cls_dev_to_mmc_host(d)	container_of(d, struct mmc_host, class_dev)
+#define MMC_CAP2_NO_SDIO_CRC (1 << 10)
 
 static void mmc_host_classdev_release(struct device *dev)
 {
