@@ -8,6 +8,7 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+#define MMC_CAP2_NO_SDIO_CRC (1 << 10)
 #ifndef _MMC_CORE_HOST_H
 #define _MMC_CORE_HOST_H
 #include <linux/mmc/host.h>
