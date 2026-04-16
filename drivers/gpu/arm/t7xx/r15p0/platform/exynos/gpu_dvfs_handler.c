@@ -65,12 +65,25 @@ int kbase_platform_dvfs_event(struct kbase_device *kbdev, u32 utilisation, u32 c
 		}
 
 		if (gpu_control_is_power_on(kbdev)) {
-			int clk = 0;
-			gpu_dvfs_calculate_env_data(kbdev);
-			clk = gpu_dvfs_decide_next_freq(kbdev, platform->env_data.utilization);
-			gpu_set_target_clk_vol(clk, true);
-			gpu_mif_pmqos(platform, mif);
-		}
+             int clk = 0;
+             u32 final_util = platform->env_data.utilization;
+
+             gpu_dvfs_calculate_env_data(kbdev);
+            
+             if (util_cl_share != NULL) {
+                 if (util_cl_share[1] > 80) {
+                     final_util = 95; 
+                 }
+              }
+              
+              if (final_util > 70) {
+                   final_util = 95;
+              }
+
+             clk = gpu_dvfs_decide_next_freq(kbdev, final_util);
+             gpu_set_target_clk_vol(clk, true);
+             gpu_mif_pmqos(platform, mif);
+        }
 		mutex_unlock(&platform->gpu_dvfs_handler_lock);
 	}
 
