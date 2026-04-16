@@ -38,8 +38,8 @@ jobs:
 
       - name: Build Kernel and DTBs
         run: |
+          ccache --set-config=sloppiness=file_macro,time_macros,include_file_mtime
           export ARCH=arm
-          export CROSS_COMPILE="ccache arm-eabi-"
           export HOSTCC="ccache gcc"
           export HOSTCXX="ccache g++"
           
@@ -47,7 +47,7 @@ jobs:
           make lineage_gts210ltexx_defconfig
           
           # Build the zImage and force the compilation of DTBs
-          make -j$(nproc) zImage Image dtbs
+          make -j$(nproc) zImage Image dtbs CROSS_COMPILE="ccache arm-eabi-" CC="ccache arm-eabi-gcc"
 
           ccache -s
 
