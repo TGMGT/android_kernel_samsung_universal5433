@@ -38,14 +38,20 @@ jobs:
 
       - name: Build Kernel and DTBs
         run: |
-          ccache --set-config=sloppiness=file_macro,time_macros,include_file_mtime,locale,random_seed
+          ccache --set-config=compiler_check=content
+          ccache --set-config=hash_alias=1
+          ccache --set-config=sloppiness=file_macro,time_macros,include_file_mtime,locale
+          
           export ARCH=arm
           export HOSTCC="ccache gcc"
           export HOSTCXX="ccache g++"
           export CROSS_COMPILE="arm-eabi-"
           export CC="ccache arm-eabi-gcc"
+
+          export KBUILD_BUILD_TIMESTAMP=''
+          export KBUILD_BUILD_USER='build'
+          export KBUILD_BUILD_HOST='github-actions'
           
-          # Load your specific device config
           make lineage_gts210ltexx_defconfig
           
           # Build the zImage and force the compilation of DTBs
