@@ -38,6 +38,8 @@ jobs:
 
       - name: Build Kernel and DTBs
         run: |
+          ccache --set-config=base_dir=${{ github.workspace }}
+          ccache --set-config=hash_dir=false
           ccache --set-config=compiler_check=content
           ccache --set-config=hash_alias=1
           ccache --set-config=sloppiness=file_macro,time_macros,include_file_mtime,locale
@@ -48,9 +50,9 @@ jobs:
           export CROSS_COMPILE="arm-eabi-"
           export CC="ccache arm-eabi-gcc"
 
-          export KBUILD_BUILD_TIMESTAMP=''
-          export KBUILD_BUILD_USER='build'
-          export KBUILD_BUILD_HOST='github-actions'
+          export KBUILD_BUILD_TIMESTAMP="2026-04-01"
+          export KBUILD_BUILD_USER="android-gts210ltexx"
+          export KBUILD_BUILD_HOST="Ubuntu-latest-github"
           
           make lineage_gts210ltexx_defconfig
           
