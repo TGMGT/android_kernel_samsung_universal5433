@@ -478,28 +478,26 @@ static int do_fsync(unsigned int fd, int datasync)
 }
 
 #ifdef CONFIG_DYNAMIC_FSYNC
-extern bool dynamic_fsync_active;
-extern int pwr_suspend_state;
+extern bool dyn_fsync_active;
+extern bool power_suspend_active;
 #endif
 
 SYSCALL_DEFINE1(fsync, unsigned int, fd)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (dynamic_fsync_active && pwr_suspend_state == 0)
-		return 0;
+    if (dyn_fsync_active && !power_suspend_active)
+        return 0;
 #endif
-    
-	return do_fsync(fd, 0);
+    return do_fsync(fd, 0);
 }
 
 SYSCALL_DEFINE1(fdatasync, unsigned int, fd)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (dynamic_fsync_active && pwr_suspend_state == 0)
-		return 0;
+    if (dyn_fsync_active && !power_suspend_active)
+        return 0;
 #endif
-
-	return do_fsync(fd, 1);
+    return do_fsync(fd, 1);
 }
 
 /**
