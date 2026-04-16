@@ -2773,6 +2773,9 @@ void mmc_rescan(struct work_struct *work)
 {
 	struct mmc_host *host =
 		container_of(work, struct mmc_host, detect.work);
+    
+    host->caps2 |= MMC_CAP2_NO_SDIO_CRC;
+    
 	int i;
 	bool extend_wakelock = false;
 
