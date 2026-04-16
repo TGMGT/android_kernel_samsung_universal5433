@@ -69,6 +69,13 @@ static inline int task_nice_ioclass(struct task_struct *task)
 		return IOPRIO_CLASS_BE;
 }
 
+static inline int task_ioprio(struct task_struct *task)
+{
+	if (task->io_context)
+		return task->io_context->ioprio;
+	return IOPRIO_PRIO_VALUE(IOPRIO_CLASS_BE, IOPRIO_NORM);
+}
+
 /*
  * For inheritance, return the highest of the two given priorities
  */
