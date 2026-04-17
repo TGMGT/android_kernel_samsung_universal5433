@@ -49,7 +49,7 @@ jobs:
           export CROSS_COMPILE="arm-eabi-"
           export CC="ccache arm-eabi-gcc"
 
-          export KBUILD_BUILD_TIMESTAMP="2026-04-01"
+          export KBUILD_BUILD_TIMESTAMP="2026-04-17"
           export KBUILD_BUILD_USER="android-gts210ltexx"
           export KBUILD_BUILD_HOST="Ubuntu-latest-github"
           
