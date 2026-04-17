@@ -2567,7 +2567,8 @@ static int mxt540e_probe(struct i2c_client *client,
 #endif
 
 	data->register_cb(mxt540e_ta_probe);
-
+	
+	retry = 10;
 	while (retry--) {
 		ret = mxt540e_init_touch_driver(data);
 
@@ -3038,7 +3039,7 @@ static void __exit mxt540e_exit(void)
 	i2c_del_driver(&mxt540e_i2c_driver);
 }
 
-module_init(mxt540e_init);
+late_initcall(mxt540e_init);
 module_exit(mxt540e_exit);
 
 MODULE_DESCRIPTION("Atmel MaXTouch 540E driver");
