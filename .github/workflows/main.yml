@@ -33,11 +33,14 @@ jobs:
       - name: Setup Ccache
         uses: jianmingyong/ccache-action@v1
         with:
-          ccache-key-prefix: ccache_cache_${{ matrix.os }}
+          ccache-key-prefix: ccache_cache_ubuntu-22.04
           max-size: 5G
 
       - name: Build Kernel and DTBs
         run: |
+          export CCACHE_DIR="${{ github.workspace }}/.ccache" 
+          mkdir -p "$CCACHE_DIR"
+          
           ccache --set-config=base_dir=${{ github.workspace }}
           ccache --set-config=hash_dir=false
           ccache --set-config=compiler_check=content
