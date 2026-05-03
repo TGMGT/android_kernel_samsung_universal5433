@@ -1309,7 +1309,7 @@ static struct sock *sk_prot_alloc(struct proto *prot, gfp_t priority,
 		sk_tx_queue_clear(sk);
 
 // ------------- START of KNOX_VPN ------------------//
-        sk->knox_uid = current->cred->uid.val;
+        sk->knox_uid = current->cred->uid;
         sk->knox_pid = current->tgid;
 // ------------- END of KNOX_VPN -------------------//
 	}
