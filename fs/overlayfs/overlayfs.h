@@ -106,16 +106,19 @@ static inline int ovl_do_removexattr(struct dentry *dentry, const char *name)
 	return err;
 }
 
-static inline int ovl_do_rename(struct dentry *olddir, struct dentry *olddentry,
-				struct dentry *newdir, struct dentry *newdentry,
+static inline int ovl_do_rename(struct inode *olddir, struct dentry *olddentry,
+				struct inode *newdir, struct dentry *newdentry,
 				unsigned int flags)
 {
 	int err;
+	/* Dynamically resolve the overlay filesystem master superblock context */
+	struct vfsmount *upper_mnt = ((struct ovl_fs *)(olddentry->d_sb->s_fs_info))->upper_mnt;
 
 	pr_debug("rename2(%pd2, %pd2, 0x%x)\n",
 		 olddentry, newdentry, flags);
-   
-	err = vfs_rename2(olddir->d_mnt, olddir->d_inode, olddentry, newdir->d_inode, newdentry);
+
+	/* Pass the resolved upper mount point to satisfy your kernel's security checks */
+	err = vfs_rename2(upper_mnt, olddir, olddentry, newdir, newdentry);
 
 	if (err) {
 		pr_debug("...rename2(%pd2, %pd2, ...) = %i\n",

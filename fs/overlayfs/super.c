@@ -26,6 +26,10 @@ MODULE_LICENSE("GPL");
 
 #define OVERLAYFS_SUPER_MAGIC 0x794c7630
 
+#ifndef clone_private_mount
+#define clone_private_mount(path) vfs_kern_mount((path)->mnt->mnt_sb, 0, (path)->mnt->mnt_sb->s_type->name, NULL)
+#endif
+
 struct ovl_config {
 	char *lowerdir;
 	char *upperdir;
@@ -90,7 +94,7 @@ enum ovl_path_type ovl_path_type(struct dentry *dentry)
 
 static struct dentry *ovl_upperdentry_dereference(struct ovl_entry *oe)
 {
-	return lockless_dereference(oe->__upperdentry);
+	return rcu_dereference_raw(oe->__upperdentry);
 }
 
 void ovl_path_upper(struct dentry *dentry, struct path *path)

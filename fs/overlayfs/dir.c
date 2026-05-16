@@ -879,12 +879,13 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	}
 
 	if (old_opaque || new_opaque) {
-		err = ovl_do_rename(old_upperdir, olddentry,
-				    new_upperdir, newdentry,
+		err = ovl_do_rename(old_upperdir->d_inode, olddentry,
+				    new_upperdir->d_inode, newdentry,
 				    flags);
 	} else {
 		BUG_ON(flags & ~RENAME_EXCHANGE);
-		err = vfs_rename2(old_upperdir->d_mnt, old_upperdir->d_inode, olddentry,
+		err = vfs_rename2(((struct ovl_fs *)(olddentry->d_sb->s_fs_info))->upper_mnt, 
+				  old_upperdir->d_inode, olddentry,
 				  new_upperdir->d_inode, newdentry);
 	}
 
