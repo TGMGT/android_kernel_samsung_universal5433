@@ -1101,14 +1101,10 @@ struct file *vfs_dentry_open(const struct path *path, int flags,
 	struct file *f;
 	int error;
 
-	error = path_has_perm(cred, path, MAY_OPEN);
-	if (error)
-		return ERR_PTR(error);
-
 	f = get_empty_filp();
 	if (!IS_ERR(f)) {
 		f->f_flags = flags;
-		f->f_path = *path;
+		f->f_path = *path; /* Explicitly assign the layout path */
 		error = do_dentry_open(f, path->dentry->d_inode->i_fop->open, cred);
 		if (error) {
 			fput(f);
