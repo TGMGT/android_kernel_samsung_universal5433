@@ -1104,8 +1104,15 @@ struct file *vfs_dentry_open(const struct path *path, int flags,
 	f = get_empty_filp();
 	if (!IS_ERR(f)) {
 		f->f_flags = flags;
-		f->f_path = *path; /* Explicitly assign the layout path */
-		error = do_dentry_open(f, path->dentry->d_inode->i_fop->open, cred);
+		f->f_path = *path;
+
+		/* If the underlying file system supports custom dentry_open hooks, call it */
+		if (path->dentry->d_inode->i_op->dentry_open) {
+			error = path->dentry->d_inode->i_op->dentry_open(path->dentry, f, cred);
+		} else {
+			error = do_dentry_open(f, path->dentry->d_inode->i_fop->open, cred);
+		}
+
 		if (error) {
 			fput(f);
 			f = ERR_PTR(error);
