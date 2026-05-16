@@ -7,8 +7,11 @@
  * the Free Software Foundation.
  */
 
+#include <linux/sched.h>
 #include <linux/kernel.h>
 #include <linux/fs_struct.h>
+#include <linux/mount.h>
+#include <linux/path.h>
 
 struct ovl_entry;
 
