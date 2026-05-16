@@ -3310,7 +3310,7 @@ static int ext4_rename2(struct inode *old_dir, struct dentry *old_dentry,
 			unsigned int flags)
 {
 	if (flags & ~RENAME_NOREPLACE)
-		return -EINVAL;
+		return -EOPNOTSUPP;
 
 	return ext4_rename(old_dir, old_dentry, new_dir, new_dentry);
 }
