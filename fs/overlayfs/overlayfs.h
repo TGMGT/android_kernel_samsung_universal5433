@@ -106,16 +106,16 @@ static inline int ovl_do_removexattr(struct dentry *dentry, const char *name)
 	return err;
 }
 
-static inline int ovl_do_rename(struct inode *olddir, struct dentry *olddentry,
-				struct inode *newdir, struct dentry *newdentry,
+static inline int ovl_do_rename(struct dentry *olddir, struct dentry *olddentry,
+				struct dentry *newdir, struct dentry *newdentry,
 				unsigned int flags)
 {
 	int err;
 
 	pr_debug("rename2(%pd2, %pd2, 0x%x)\n",
 		 olddentry, newdentry, flags);
-
-	err = vfs_rename(olddir, olddentry, newdir, newdentry);
+   
+	err = vfs_rename2(olddir->d_mnt, olddir->d_inode, olddentry, newdir->d_inode, newdentry);
 
 	if (err) {
 		pr_debug("...rename2(%pd2, %pd2, ...) = %i\n",
