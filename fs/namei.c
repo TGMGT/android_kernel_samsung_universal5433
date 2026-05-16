@@ -2241,7 +2241,7 @@ user_path_parent(int dfd, const char __user *path, struct nameidata *nd,
  * It's inline, so penalty for filesystems that don't use sticky bit is
  * minimal.
  */
-static inline int check_sticky(struct inode *dir, struct inode *inode)
+int check_sticky(struct inode *dir, struct inode *inode)
 {
 	kuid_t fsuid = current_fsuid();
 
@@ -2253,6 +2253,7 @@ static inline int check_sticky(struct inode *dir, struct inode *inode)
 		return 0;
 	return !capable_wrt_inode_uidgid(inode, CAP_FOWNER);
 }
+EXPORT_SYMBOL(check_sticky);
 
 /*
  *	Check whether we can remove a link victim from directory dir, check
