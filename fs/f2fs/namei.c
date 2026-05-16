@@ -895,23 +895,21 @@ static int f2fs_rename2(struct inode *old_dir, struct dentry *old_dentry,
 			struct inode *new_dir, struct dentry *new_dentry,
 			unsigned int flags)
 {
-	/* Accept only the cross-rename exchange flag */
 	if (flags & RENAME_EXCHANGE) {
 		return f2fs_cross_rename(old_dir, old_dentry,
 					 new_dir, new_dentry);
 	}
-
-	/* 
-	 * If OverlayFS passes RENAME_WHITEOUT or RENAME_NOREPLACE, 
-	 * return an error so OverlayFS falls back to its native vfs manual mode.
-	 */
-	if (flags & (RENAME_WHITEOUT | RENAME_NOREPLACE))
+	
+	if (flags & RENAME_NOREPLACE) {
+		if (new_dentry->d_inode)
+			return -EEXIST;
+	}
+	
+	if (flags & RENAME_WHITEOUT)
 		return -EOPNOTSUPP;
-
-	/* Fall back to standard rename for normal directory operations */
+	
 	return f2fs_rename(old_dir, old_dentry, new_dir, new_dentry);
 }
-
 
 static void *f2fs_encrypted_follow_link(struct dentry *dentry,
 						struct nameidata *nd)
