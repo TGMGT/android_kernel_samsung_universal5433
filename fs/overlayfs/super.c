@@ -465,7 +465,16 @@ out:
 
 struct file *ovl_path_open(struct path *path, int flags)
 {
-	return dentry_open(path, flags, current_cred());
+	struct file *f;
+	const struct cred *old_cred;
+	
+	old_cred = override_creds(prepare_kernel_cred(NULL));
+	
+	f = dentry_open(path, flags, current_cred());
+	
+	revert_creds(old_cred);
+
+	return f;
 }
 
 static void ovl_put_super(struct super_block *sb)
