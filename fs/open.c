@@ -673,7 +673,7 @@ int open_check_o_direct(struct file *f)
 	return 0;
 }
 
-static int do_dentry_open(struct file *f,
+int do_dentry_open(struct file *f,
 			  int (*open)(struct inode *, struct file *),
 			  const struct cred *cred)
 {
@@ -755,6 +755,7 @@ cleanup_file:
 	f->f_inode = NULL;
 	return error;
 }
+EXPORT_SYMBOL(do_dentry_open);
 
 /**
  * finish_open - finish opening a file
