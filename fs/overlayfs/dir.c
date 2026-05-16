@@ -878,7 +878,7 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 			goto out_dput;
 	}
 
-		if (old_opaque || new_opaque) {
+	if (old_opaque || new_opaque) {
 		err = ovl_do_rename(old_upperdir, olddentry,
 				    new_upperdir, newdentry,
 				    flags);
