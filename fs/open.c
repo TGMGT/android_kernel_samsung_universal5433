@@ -1107,7 +1107,8 @@ struct file *vfs_dentry_open(const struct path *path, int flags,
 	f = get_empty_filp();
 	if (!IS_ERR(f)) {
 		f->f_flags = flags;
-		error = do_dentry_open(f, path->dentry, path->mnt, NULL, cred);
+		f->f_path = *path;
+		error = do_dentry_open(f, path->dentry->d_inode->i_fop->open, cred);
 		if (error) {
 			fput(f);
 			f = ERR_PTR(error);
