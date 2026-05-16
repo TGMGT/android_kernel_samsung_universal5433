@@ -27,7 +27,7 @@ MODULE_LICENSE("GPL");
 #define OVERLAYFS_SUPER_MAGIC 0x794c7630
 
 #ifndef clone_private_mount
-#define clone_private_mount(path) vfs_kern_mount((path)->mnt->mnt_sb, 0, (path)->mnt->mnt_sb->s_type->name, NULL)
+#define clone_private_mount(path) vfs_kern_mount((path)->mnt->mnt_sb->s_type, 0, (path)->mnt->mnt_sb->s_type->name, NULL)
 #endif
 
 struct ovl_config {
