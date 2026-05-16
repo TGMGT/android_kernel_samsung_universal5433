@@ -111,16 +111,12 @@ static inline int ovl_do_rename(struct inode *olddir, struct dentry *olddentry,
 				unsigned int flags)
 {
 	int err;
-	struct vfsmount *upper_mnt = olddentry->d_sb->s_root->d_inode->i_sb->s_root->d_sb->s_root->d_inode->i_sb->s_root;
+	pr_debug("rename2(%pd2, %pd2, 0x%x)\n", olddentry, newdentry, flags);
 
-	pr_debug("rename2(%pd2, %pd2, 0x%x)\n",
-		 olddentry, newdentry, flags);
-
-	err = vfs_rename2(upper_mnt, olddir, olddentry, newdir, newdentry);
+	err = vfs_rename2(current->fs->root.mnt, olddir, olddentry, newdir, newdentry);
 
 	if (err) {
-		pr_debug("...rename2(%pd2, %pd2, ...) = %i\n",
-			 olddentry, newdentry, err);
+		pr_debug("...rename2(%pd2, %pd2, ...) = %i\n", olddentry, newdentry, err);
 	}
 	return err;
 }

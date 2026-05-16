@@ -360,8 +360,10 @@ static int ovl_dentry_open(struct dentry *dentry, struct file *file,
 
 		ovl_path_upper(dentry, &realpath);
 	}
+	
+	file->f_path = realpath;
+	err = do_dentry_open(file, realpath.dentry->d_inode->i_fop->open, cred);
 
-	err = vfs_open(&realpath, file, cred);
 out_drop_write:
 	if (want_write)
 		ovl_drop_write(dentry);
