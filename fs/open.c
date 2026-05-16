@@ -1093,3 +1093,26 @@ int nonseekable_open(struct inode *inode, struct file *filp)
 }
 
 EXPORT_SYMBOL(nonseekable_open);
+
+struct file *vfs_dentry_open(const struct path *path, int flags,
+			     const struct cred *cred)
+{
+	struct file *f;
+	int error;
+
+	error = path_has_perm(cred, path, MAY_OPEN);
+	if (error)
+		return ERR_PTR(error);
+
+	f = get_empty_filp();
+	if (!IS_ERR(f)) {
+		f->f_flags = flags;
+		error = do_dentry_open(f, path->dentry, path->mnt, NULL, cred);
+		if (error) {
+			fput(f);
+			f = ERR_PTR(error);
+		}
+	}
+	return f;
+}
+EXPORT_SYMBOL(vfs_dentry_open);
