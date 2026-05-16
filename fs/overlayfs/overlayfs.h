@@ -8,6 +8,7 @@
  */
 
 #include <linux/kernel.h>
+#include <linux/fs_struct.h>
 
 struct ovl_entry;
 

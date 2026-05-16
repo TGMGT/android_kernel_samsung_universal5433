@@ -13,6 +13,7 @@
 #include <linux/security.h>
 #include <linux/cred.h>
 #include "overlayfs.h"
+#include <linux/fs_struct.h>
 
 void ovl_cleanup(struct inode *wdir, struct dentry *wdentry)
 {
