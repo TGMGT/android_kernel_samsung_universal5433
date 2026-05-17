@@ -1002,8 +1002,10 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 out_free_oe:
 	kfree(oe);
 out_put_lower_mnt:
-	for (i = 0; i < ufs->numlower; i++)
-		mntput(ufs->lower_mnt[i]);
+	for (i = 0; i < ufs->numlower; i++) {
+		if (ufs->lower_mnt[i])
+			mntput(ufs->lower_mnt[i]);
+	}
 	kfree(ufs->lower_mnt);
 out_put_workdir:
 	dput(ufs->workdir);
