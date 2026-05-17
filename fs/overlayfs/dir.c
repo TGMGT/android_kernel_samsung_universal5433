@@ -723,6 +723,13 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	struct dentry *opaquedir = NULL;
 	const struct cred *old_cred = NULL;
 	struct cred *override_cred = NULL;
+	
+	pr_err("=== overlayfs: RENAME2 ENTER === old='%pd2' new='%pd2' is_dir=%d redirect_dir=%d\n",
+	       old, new, S_ISDIR(old->d_inode->i_mode), ovl_redirect_dir(old->d_sb));
+
+	old_type = ovl_path_type(old);
+	pr_err("overlayfs: rename2 old_type=0x%x (MERGE_OR_LOWER=%d)\n", 
+	       old_type, OVL_TYPE_MERGE_OR_LOWER(old_type) ? 1 : 0);
 
 	err = -EINVAL;
 	if (flags & ~(RENAME_EXCHANGE | RENAME_NOREPLACE))
