@@ -734,20 +734,11 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	if (err)
 		goto out;
 
-	/* Don't copy up directory trees unless config rules tell us to override */
+	/* Don't copy up directory trees */
 	old_type = ovl_path_type(old);
-	if (OVL_TYPE_MERGE_OR_LOWER(old_type) && is_dir) {
-		struct ovl_fs *ufs = old->d_sb->s_fs_info;
-		
-		if (ufs->config.redirect_dir) {
-			err = ovl_copy_up(old);
-			if (err)
-				goto out_drop_write;
-		} else {
-			err = -EXDEV;
-			goto out;
-		}
-	}
+	err = -EXDEV;
+	if (OVL_TYPE_MERGE_OR_LOWER(old_type) && is_dir)
+		goto out;
 
 	if (new->d_inode) {
 		err = ovl_check_sticky(new);
@@ -919,14 +910,7 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 
 	if (cleanup_whiteout)
 		ovl_cleanup(old_upperdir->d_inode, newdentry);
-		
-	if (is_dir && OVL_TYPE_MERGE_OR_LOWER(old_type)) {
-		struct ovl_fs *ufs = old->d_sb->s_fs_info;
-		if (ufs->config.redirect_dir) {
-			vfs_setxattr(olddentry, "trusted.overlay.redirect", 
-			             new->d_name.name, strlen(new->d_name.name), 0);
-		}
-	}
+	
 
 	ovl_dentry_version_inc(old->d_parent);
 	ovl_dentry_version_inc(new->d_parent);

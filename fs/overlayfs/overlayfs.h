@@ -198,20 +198,3 @@ int ovl_copy_up_one(struct dentry *parent, struct dentry *dentry,
 		    struct iattr *attr);
 int ovl_copy_xattr(struct dentry *old, struct dentry *new);
 int ovl_set_attr(struct dentry *upper, struct kstat *stat);
-
-struct ovl_config {
-    char *upperdir;
-    char *lowerdir;
-    char *workdir;
-    bool redirect_dir;
-    bool index;
-};
-
-struct ovl_fs {
-    struct vfsmount *upper_mnt;
-    struct vfsmount **lower_mnt;
-    unsigned numlower;
-    struct dentry *workdir;
-    long lower_namelen;
-    struct ovl_config config;
-};
