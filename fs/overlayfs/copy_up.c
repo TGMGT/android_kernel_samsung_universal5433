@@ -298,16 +298,10 @@ int ovl_copy_up_one(struct dentry *parent, struct dentry *dentry,
 	const struct cred *old_cred;
 	struct cred *override_cred;
 	char *link = NULL;
-	bool is_redirect_dir = false;
 
 	if (WARN_ON(!workdir))
 		return -EROFS;
-
-	/* Check if this is a directory being copied up for redirect */
-	if (S_ISDIR(stat->mode) && ovl_redirect_dir(dentry->d_sb)) {
-		is_redirect_dir = true;
-	}
-
+	
 	ovl_path_upper(parent, &parentpath);
 	upperdir = parentpath.dentry;
 
