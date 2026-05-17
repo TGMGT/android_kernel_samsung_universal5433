@@ -191,6 +191,30 @@ out_unlock:
 	return err;
 }
 
+/* Returns relative path from overlay root to this lower dentry */
+static char *ovl_get_redirect_path(struct dentry *dentry)
+{
+	return kstrdup(dentry->d_name.name, GFP_KERNEL);
+}
+
+static int ovl_create_redirect(struct dentry *dentry, struct dentry *upperdentry)
+{
+	char *redirect;
+	int err;
+
+	if (!ovl_redirect_dir(dentry->d_sb))
+		return 0;
+
+	redirect = ovl_get_redirect_path(dentry);
+	if (IS_ERR(redirect))
+		return PTR_ERR(redirect);
+
+	err = ovl_set_redirect_xattr(upperdentry, redirect);
+	kfree(redirect);
+
+	return err;
+}
+
 static int ovl_lock_rename_workdir(struct dentry *workdir,
 				   struct dentry *upperdir)
 {
@@ -734,11 +758,14 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	if (err)
 		goto out;
 
-	/* Don't copy up directory trees */
+	/* Don't copy up directory trees unless redirect_dir is enabled */
 	old_type = ovl_path_type(old);
-	err = -EXDEV;
-	if (OVL_TYPE_MERGE_OR_LOWER(old_type) && is_dir)
-		goto out;
+	if (OVL_TYPE_MERGE_OR_LOWER(old_type) && is_dir) {
+		if (!ovl_redirect_dir(old->d_sb)) {
+			err = -EXDEV;
+			goto out;
+		}
+	}
 
 	if (new->d_inode) {
 		err = ovl_check_sticky(new);
@@ -775,6 +802,7 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	if (err)
 		goto out;
 
+	/* Always copy up old (this will now succeed for dirs when redirect_dir=on) */
 	err = ovl_copy_up(old);
 	if (err)
 		goto out_drop_write;
@@ -788,6 +816,19 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 			goto out_drop_write;
 	}
 
+	/* === Handle redirect for lower directory rename === */
+	if (OVL_TYPE_MERGE_OR_LOWER(old_type) && is_dir && ovl_redirect_dir(old->d_sb)) {
+		olddentry = ovl_dentry_upper(old);
+		if (!olddentry) {
+			err = -EIO;
+			goto out_drop_write;
+		}
+
+		err = ovl_create_redirect(old, olddentry);
+		if (err)
+			goto out_drop_write;
+	}
+
 	old_opaque = !OVL_TYPE_PURE_UPPER(old_type);
 	new_opaque = !OVL_TYPE_PURE_UPPER(new_type);
 
@@ -797,13 +838,6 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 		if (!override_cred)
 			goto out_drop_write;
 
-		/*
-		 * CAP_SYS_ADMIN for setting xattr on whiteout, opaque dir
-		 * CAP_DAC_OVERRIDE for create in workdir
-		 * CAP_FOWNER for removing whiteout from sticky dir
-		 * CAP_FSETID for chmod of opaque dir
-		 * CAP_CHOWN for chown of opaque dir
-		 */
 		cap_raise(override_cred->cap_effective, CAP_SYS_ADMIN);
 		cap_raise(override_cred->cap_effective, CAP_DAC_OVERRIDE);
 		cap_raise(override_cred->cap_effective, CAP_FOWNER);
@@ -824,10 +858,8 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	if (overwrite) {
 		if (old_opaque) {
 			if (new->d_inode || !new_opaque) {
-				/* Whiteout source */
 				flags |= RENAME_WHITEOUT;
 			} else {
-				/* Switch whiteouts */
 				flags |= RENAME_EXCHANGE;
 			}
 		} else if (is_dir && !new->d_inode && new_opaque) {
@@ -910,7 +942,6 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 
 	if (cleanup_whiteout)
 		ovl_cleanup(old_upperdir->d_inode, newdentry);
-	
 
 	ovl_dentry_version_inc(old->d_parent);
 	ovl_dentry_version_inc(new->d_parent);

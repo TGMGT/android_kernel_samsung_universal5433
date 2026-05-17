@@ -41,6 +41,8 @@ struct ovl_fs {
 	long lower_namelen;
 	/* pathnames of lower and upper dirs, for show_options */
 	struct ovl_config config;
+	bool redirect_dir;
+	bool redirect_follow;
 };
 
 struct ovl_dir_cache;
@@ -531,6 +533,10 @@ static int ovl_show_options(struct seq_file *m, struct dentry *dentry)
 		seq_printf(m, ",upperdir=%s", ufs->config.upperdir);
 		seq_printf(m, ",workdir=%s", ufs->config.workdir);
 	}
+	
+	if (ufs->redirect_dir)
+		seq_printf(m, ",redirect_dir=on");
+	
 	return 0;
 }
 
@@ -555,6 +561,7 @@ enum {
 	OPT_LOWERDIR,
 	OPT_UPPERDIR,
 	OPT_WORKDIR,
+	OPT_REDIRECT_DIR,
 	OPT_ERR,
 };
 
@@ -562,6 +569,7 @@ static const match_table_t ovl_tokens = {
 	{OPT_LOWERDIR,			"lowerdir=%s"},
 	{OPT_UPPERDIR,			"upperdir=%s"},
 	{OPT_WORKDIR,			"workdir=%s"},
+	{OPT_REDIRECT_DIR, "redirect_dir=%s"},
 	{OPT_ERR,			NULL}
 };
 
@@ -614,7 +622,19 @@ static int ovl_parse_opt(char *opt, struct ovl_config *config)
 			if (!config->lowerdir)
 				return -ENOMEM;
 			break;
-
+			
+	    case OPT_REDIRECT_DIR:
+			kfree(config->redirect_dir); /* if you made it char* */
+			if (strcmp(args[0].from, "on") == 0 ||
+			    strcmp(args[0].from, "follow") == 0) {
+				config->redirect_dir = true;
+				config->redirect_follow = true;
+			} else {
+				config->redirect_dir = false;
+				config->redirect_follow = false;
+			}
+		    break;
+        
 		case OPT_WORKDIR:
 			kfree(config->workdir);
 			config->workdir = match_strdup(&args[0]);
@@ -846,6 +866,9 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 	err = ovl_parse_opt((char *) data, &ufs->config);
 	if (err)
 		goto out_free_config;
+	
+	ufs->redirect_dir = ufs->config.redirect_dir;
+	ufs->redirect_follow = ufs->config.redirect_follow;
 
 	err = -EINVAL;
 	if (!ufs->config.lowerdir) {
