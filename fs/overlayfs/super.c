@@ -626,16 +626,18 @@ static int ovl_parse_opt(char *opt, struct ovl_config *config)
 			break;
 			
 	    case OPT_REDIRECT_DIR:
-			kfree(config->redirect_dir); /* if you made it char* */
 			if (strcmp(args[0].from, "on") == 0 ||
 			    strcmp(args[0].from, "follow") == 0) {
 				config->redirect_dir = true;
 				config->redirect_follow = true;
+			} else if (strcmp(args[0].from, "nofollow") == 0) {
+				config->redirect_dir = true;
+				config->redirect_follow = false;
 			} else {
 				config->redirect_dir = false;
 				config->redirect_follow = false;
 			}
-		    break;
+			break;
         
 		case OPT_WORKDIR:
 			kfree(config->workdir);
@@ -871,6 +873,9 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 	
 	ufs->redirect_dir = ufs->config.redirect_dir;
 	ufs->redirect_follow = ufs->config.redirect_follow;
+	
+	if (!ufs->config.upperdir)
+		ufs->redirect_dir = false;
 
 	err = -EINVAL;
 	if (!ufs->config.lowerdir) {
