@@ -356,7 +356,7 @@ int ovl_copy_up_one(struct dentry *parent, struct dentry *dentry,
 			ovl_create_redirect(dentry, ovl_dentry_upper(dentry));
 	} else {
 		/* Normal copy-up */
-		err = ovl_copy_up_locked(...);
+		err = ovl_copy_up_locked(workdir, upperdir, dentry, lowerpath, stat, attr, link);
 	}
 
 	if (!err) {
