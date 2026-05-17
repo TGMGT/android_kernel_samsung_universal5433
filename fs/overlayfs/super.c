@@ -26,25 +26,6 @@ MODULE_LICENSE("GPL");
 
 #define OVERLAYFS_SUPER_MAGIC 0x794c7630
 
-struct ovl_config {
-	char *lowerdir;
-	char *upperdir;
-	char *workdir;
-	bool redirect_dir;
-	bool index;
-};
-
-/* private information held for overlayfs's superblock */
-struct ovl_fs {
-	struct vfsmount *upper_mnt;
-	unsigned numlower;
-	struct vfsmount **lower_mnt;
-	struct dentry *workdir;
-	long lower_namelen;
-	/* pathnames of lower and upper dirs, for show_options */
-	struct ovl_config config;
-};
-
 struct ovl_dir_cache;
 
 /* private information held for every overlayfs dentry */
@@ -659,7 +640,7 @@ static struct dentry *ovl_workdir_create(struct vfsmount *mnt,
 	struct dentry *work;
 	int err;
 	bool retried = false;
-	struct ovl_fs *ofs = dentry->d_sb->s_fs_info; /* ADDED: Access global config state */
+	struct ovl_fs *ofs = dentry->d_sb->s_fs_info;
 
 	err = mnt_want_write(mnt);
 	if (err)
