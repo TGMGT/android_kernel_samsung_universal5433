@@ -1126,16 +1126,22 @@ int ovl_create_redirect(struct dentry *dentry, struct dentry *upperdentry)
 	if (!ovl_redirect_dir(dentry->d_sb))
 		return 0;
 
+	pr_err("overlayfs: redirect_dir: setting redirect for '%pd2'\n", dentry);
+
 	redirect = ovl_get_redirect_path(dentry);
-	if (IS_ERR(redirect))
+	if (IS_ERR(redirect)) {
+		pr_err("overlayfs: redirect_dir: failed to get redirect path\n");
 		return PTR_ERR(redirect);
+	}
 
 	err = ovl_set_redirect_xattr(upperdentry, redirect);
 	kfree(redirect);
 
 	if (err)
-		pr_warn("overlayfs: failed to set redirect on '%pd2' (%i)\n",
-			upperdentry, err);
+		pr_err("overlayfs: redirect_dir: failed to set xattr '%s' (%i)\n", 
+		       OVL_XATTR_REDIRECT, err);
+	else
+		pr_err("overlayfs: redirect_dir: SUCCESS set redirect xattr\n");
 
 	return err;
 }
