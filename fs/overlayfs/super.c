@@ -912,6 +912,12 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 				    &ufs->lower_namelen, &sb->s_stack_depth);
 		if (err)
 			goto out_put_lowerpath;
+			
+	   if (!stack[numlower].dentry || !S_ISDIR(stack[numlower].dentry->d_inode->i_mode)) {
+			pr_err("overlayfs: lowerpath is not a directory\n");
+			err = -ENOTDIR;
+			goto out_put_lowerpath;
+		}
 
 		lower = strchr(lower, '\0') + 1;
 	}
@@ -959,8 +965,8 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 		 */
 		mnt->mnt_flags |= MNT_READONLY;
 
-		ufs->lower_mnt[ufs->numlower] = mnt;
-		ufs->numlower++;
+		ufs->lower_mnt[i] = mnt;
+		ufs->numlower = i + 1;
 	}	
 
 	/* If the upper fs is nonexistent, we mark overlayfs r/o too */
