@@ -1512,8 +1512,12 @@ struct vfsmount *clone_private_mount(struct path *path)
 	down_read(&namespace_sem);
 	new_mnt = clone_mnt(old_mnt, path->dentry, CL_PRIVATE);
 	up_read(&namespace_sem);
+	
 	if (IS_ERR(new_mnt))
 		return ERR_CAST(new_mnt);
+    
+	new_mnt->mnt.mnt_flags &= ~MNT_LOCKED;
+	new_mnt->mnt_ns = NULL;
 
 	return &new_mnt->mnt;
 }
