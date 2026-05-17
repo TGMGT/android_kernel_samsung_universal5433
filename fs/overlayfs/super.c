@@ -26,10 +26,6 @@ MODULE_LICENSE("GPL");
 
 #define OVERLAYFS_SUPER_MAGIC 0x794c7630
 
-#ifndef clone_private_mount
-#define clone_private_mount(path) vfs_kern_mount((path)->mnt->mnt_sb->s_type, 0, (path)->mnt->mnt_sb->s_type->name, NULL)
-#endif
-
 struct ovl_config {
 	char *lowerdir;
 	char *upperdir;
@@ -965,7 +961,7 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 
 		ufs->lower_mnt[ufs->numlower] = mnt;
 		ufs->numlower++;
-	}
+	}	
 
 	/* If the upper fs is nonexistent, we mark overlayfs r/o too */
 	if (!ufs->upper_mnt)
