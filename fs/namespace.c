@@ -1510,13 +1510,15 @@ struct vfsmount *clone_private_mount(struct path *path)
 		return ERR_PTR(-EINVAL);
 
 	down_read(&namespace_sem);
-	new_mnt = clone_mnt(old_mnt, path->dentry, CL_PRIVATE);
+	new_mnt = clone_mnt(old_mnt, path->dentry, CL_PRIVATE | CL_RECURSIVE);
 	up_read(&namespace_sem);
 	
 	if (IS_ERR(new_mnt))
 		return ERR_CAST(new_mnt);
 	
 	new_mnt->mnt_ns = NULL;
+	list_del_init(&new_mnt->mnt_child);
+	list_del_init(&new_mnt->mnt_hash);
 
 	return &new_mnt->mnt;
 }
