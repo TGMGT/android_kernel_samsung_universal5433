@@ -191,30 +191,6 @@ out_unlock:
 	return err;
 }
 
-/* Returns relative path from overlay root to this lower dentry */
-static char *ovl_get_redirect_path(struct dentry *dentry)
-{
-	return kstrdup(dentry->d_name.name, GFP_KERNEL);
-}
-
-static int ovl_create_redirect(struct dentry *dentry, struct dentry *upperdentry)
-{
-	char *redirect;
-	int err;
-
-	if (!ovl_redirect_dir(dentry->d_sb))
-		return 0;
-
-	redirect = ovl_get_redirect_path(dentry);
-	if (IS_ERR(redirect))
-		return PTR_ERR(redirect);
-
-	err = ovl_set_redirect_xattr(upperdentry, redirect);
-	kfree(redirect);
-
-	return err;
-}
-
 static int ovl_lock_rename_workdir(struct dentry *workdir,
 				   struct dentry *upperdir)
 {

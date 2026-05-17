@@ -175,12 +175,13 @@ ssize_t ovl_getxattr(struct dentry *dentry, const char *name,
 		     void *value, size_t size);
 ssize_t ovl_listxattr(struct dentry *dentry, char *list, size_t size);
 int ovl_removexattr(struct dentry *dentry, const char *name);
-int ovl_get_redirect(struct dentry *dentry, char *buf, int len);
-int ovl_set_redirect(struct dentry *dentry, const char *redirect);
 
 struct inode *ovl_new_inode(struct super_block *sb, umode_t mode,
 			    struct ovl_entry *oe);
 bool ovl_redirect_dir(struct super_block *sb);
+int ovl_get_redirect_xattr(struct dentry *dentry, char *buf, int len);
+int ovl_set_redirect_xattr(struct dentry *dentry, const char *redirect);
+int ovl_create_redirect(struct dentry *dentry, struct dentry *upperdentry);
 static inline void ovl_copyattr(struct inode *from, struct inode *to)
 {
 	to->i_uid = from->i_uid;

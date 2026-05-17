@@ -1089,14 +1089,55 @@ static void __exit ovl_exit(void)
 	unregister_filesystem(&ovl_fs_type);
 }
 
+/* ============== redirect_dir support ============== */
+
 bool ovl_redirect_dir(struct super_block *sb)
 {
 	struct ovl_fs *ofs = sb->s_fs_info;
+	return ofs && ofs->redirect_dir;
+}
 
-	if (!ofs)
-		return false;
+int ovl_get_redirect_xattr(struct dentry *dentry, char *buf, int len)
+{
+	if (!dentry->d_inode || !dentry->d_inode->i_op->getxattr)
+		return -ENODATA;
+	return vfs_getxattr(dentry, OVL_XATTR_REDIRECT, buf, len);
+}
 
-	return ofs->redirect_dir;
+int ovl_set_redirect_xattr(struct dentry *dentry, const char *redirect)
+{
+	if (!redirect)
+		return 0;
+	return ovl_do_setxattr(dentry, OVL_XATTR_REDIRECT,
+			       redirect, strlen(redirect), 0);
+}
+
+static char *ovl_get_redirect_path(struct dentry *dentry)
+{
+	/* Simple version for now (only basename). Works for top-level renames. */
+	return kstrdup(dentry->d_name.name, GFP_KERNEL);
+}
+
+int ovl_create_redirect(struct dentry *dentry, struct dentry *upperdentry)
+{
+	char *redirect;
+	int err;
+
+	if (!ovl_redirect_dir(dentry->d_sb))
+		return 0;
+
+	redirect = ovl_get_redirect_path(dentry);
+	if (IS_ERR(redirect))
+		return PTR_ERR(redirect);
+
+	err = ovl_set_redirect_xattr(upperdentry, redirect);
+	kfree(redirect);
+
+	if (err)
+		pr_warn("overlayfs: failed to set redirect on '%pd2' (%i)\n",
+			upperdentry, err);
+
+	return err;
 }
 
 module_init(ovl_init);
