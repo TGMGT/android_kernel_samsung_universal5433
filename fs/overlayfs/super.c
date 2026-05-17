@@ -1089,5 +1089,15 @@ static void __exit ovl_exit(void)
 	unregister_filesystem(&ovl_fs_type);
 }
 
+bool ovl_redirect_dir(struct super_block *sb)
+{
+	struct ovl_fs *ofs = sb->s_fs_info;
+
+	if (!ofs)
+		return false;
+
+	return ofs->redirect_dir;
+}
+
 module_init(ovl_init);
 module_exit(ovl_exit);

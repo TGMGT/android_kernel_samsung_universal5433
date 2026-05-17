@@ -321,12 +321,6 @@ out:
 	return err;
 }
 
-bool ovl_redirect_dir(struct super_block *sb)
-{
-	struct ovl_fs *ofs = sb->s_fs_info;
-	return ofs->redirect_dir;
-}
-
 int ovl_get_redirect(struct dentry *dentry, char *buf, int len)
 {
 	return vfs_getxattr(dentry, OVL_XATTR_REDIRECT, buf, len);
