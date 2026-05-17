@@ -1515,8 +1515,7 @@ struct vfsmount *clone_private_mount(struct path *path)
 	
 	if (IS_ERR(new_mnt))
 		return ERR_CAST(new_mnt);
-    
-	new_mnt->mnt.mnt_flags &= ~MNT_LOCKED;
+	
 	new_mnt->mnt_ns = NULL;
 
 	return &new_mnt->mnt;
