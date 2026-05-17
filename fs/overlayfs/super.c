@@ -30,6 +30,8 @@ struct ovl_config {
 	char *lowerdir;
 	char *upperdir;
 	char *workdir;
+	bool redirect_dir;
+	bool index;
 };
 
 /* private information held for overlayfs's superblock */
@@ -598,6 +600,15 @@ static int ovl_parse_opt(char *opt, struct ovl_config *config)
 
 		if (!*p)
 			continue;
+		
+		if (strncmp(p, "redirect_dir=", 13) == 0) {
+			config->redirect_dir = true;
+			continue;
+		}
+		if (strncmp(p, "index=", 6) == 0) {
+			config->index = true;
+			continue;
+		}
 
 		token = match_token(p, ovl_tokens, args);
 		switch (token) {
@@ -648,6 +659,7 @@ static struct dentry *ovl_workdir_create(struct vfsmount *mnt,
 	struct dentry *work;
 	int err;
 	bool retried = false;
+	struct ovl_fs *ofs = dentry->d_sb->s_fs_info; /* ADDED: Access global config state */
 
 	err = mnt_want_write(mnt);
 	if (err)
@@ -677,6 +689,25 @@ retry:
 		err = ovl_create_real(dir, work, &stat, NULL, NULL, true);
 		if (err)
 			goto out_dput;
+		
+		if (ofs && ofs->config.index) {
+			struct dentry *index_work;
+			struct kstat index_stat = {
+				.mode = S_IFDIR | 0700, /* Index folder must have strict rwx permissions */
+			};
+
+			index_work = lookup_one_len("index", dentry, 5);
+			if (!IS_ERR(index_work)) {
+				/* Create the folder only if it does not already exist */
+				if (!index_work->d_inode) {
+					ovl_create_real(dir, index_work, &index_stat, NULL, NULL, true);
+				}
+				dput(index_work);
+			} else {
+				pr_warn("overlayfs: index subdirectory lookup failed; turning feature off\n");
+				ofs->config.index = false;
+			}
+		}
 	}
 out_unlock:
 	mutex_unlock(&dir->i_mutex);
@@ -842,6 +873,9 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 	ufs = kzalloc(sizeof(struct ovl_fs), GFP_KERNEL);
 	if (!ufs)
 		goto out;
+		
+	ufs->config.redirect_dir = true;
+	ufs->config.index = true;
 
 	err = ovl_parse_opt((char *) data, &ufs->config);
 	if (err)
