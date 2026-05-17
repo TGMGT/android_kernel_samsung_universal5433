@@ -798,23 +798,28 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 		if (err)
 			goto out_drop_write;
 	}
-
-	/* === Handle redirect for lower directory rename === */
+	
 	if (OVL_TYPE_MERGE_OR_LOWER(old_type) && is_dir && ovl_redirect_dir(old->d_sb)) {
-		pr_err("overlayfs: redirect_dir: attempting rename of lower dir '%pd2'\n", old);
-
-		olddentry = ovl_dentry_upper(old);
-		if (!olddentry) {
-			pr_err("overlayfs: redirect_dir: copy_up failed to create upper dentry\n");
-			err = -EIO;
+		pr_err("overlayfs: redirect_dir attempting for lower dir '%pd2'\n", old);
+		
+		err = ovl_copy_up(old);
+		if (err) {
+			pr_err("overlayfs: redirect_dir copy_up failed (%i)\n", err);
 			goto out_drop_write;
 		}
 
+		olddentry = ovl_dentry_upper(old);
+		if (!olddentry) {
+			pr_err("overlayfs: redirect_dir no upper dentry!\n");
+			err = -EIO;
+			goto out_drop_write;
+		}
+		
 		err = ovl_create_redirect(old, olddentry);
 		if (err)
-			pr_err("overlayfs: redirect_dir: failed to set redirect xattr (%i)\n", err);
+			pr_err("overlayfs: redirect_dir xattr failed (%i) - continuing anyway\n", err);
 		else
-			pr_err("overlayfs: redirect_dir: successfully set redirect on '%pd2'\n", olddentry);
+			pr_err("overlayfs: redirect_dir xattr set successfully\n");
 	}
 
 	old_opaque = !OVL_TYPE_PURE_UPPER(old_type);

@@ -355,18 +355,14 @@ int ovl_copy_up_one(struct dentry *parent, struct dentry *dentry,
 	}
 
 	/* === Shallow copy for redirect_dir directories === */
-	if (is_redirect_dir) {
-		/* For redirect we only create the directory itself, no data copy */
-		err = ovl_copy_up_locked(workdir, upperdir, dentry, lowerpath,
-					 stat, attr, link);
-		if (!err) {
-			/* Set the redirect xattr */
-			err = ovl_create_redirect(dentry, ovl_dentry_upper(dentry));
-		}
+	if (S_ISDIR(stat->mode) && ovl_redirect_dir(dentry->d_sb)) {
+		/* Shallow copy for redirect */
+		err = ovl_copy_up_locked(workdir, upperdir, dentry, lowerpath, stat, attr, link);
+		if (!err)
+			ovl_create_redirect(dentry, ovl_dentry_upper(dentry));
 	} else {
 		/* Normal copy-up */
-		err = ovl_copy_up_locked(workdir, upperdir, dentry, lowerpath,
-					 stat, attr, link);
+		err = ovl_copy_up_locked(...);
 	}
 
 	if (!err) {
