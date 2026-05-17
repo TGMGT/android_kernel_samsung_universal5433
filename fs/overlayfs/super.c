@@ -30,6 +30,8 @@ struct ovl_config {
 	char *lowerdir;
 	char *upperdir;
 	char *workdir;
+	bool redirect_dir;
+	bool redirect_follow;
 };
 
 /* private information held for overlayfs's superblock */
