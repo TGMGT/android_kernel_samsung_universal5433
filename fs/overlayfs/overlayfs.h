@@ -117,19 +117,21 @@ static inline int ovl_do_removexattr(struct dentry *dentry, const char *name)
 	return err;
 }
 
-/* Rename wrapper with flags support for kernel 4.1 backport
- * Handles: RENAME_EXCHANGE, RENAME_WHITEOUT, RENAME_NOREPLACE manually
- */
+static inline int ovl_do_whiteout(struct inode *dir, struct dentry *dentry)
+{
+	int err = vfs_whiteout(dir, dentry);
+	pr_debug("whiteout(%pd2) = %i\n", dentry, err);
+	return err;
+}
+
 static inline int ovl_do_rename(struct inode *olddir, struct dentry *olddentry,
 				struct inode *newdir, struct dentry *newdentry,
 				unsigned int flags)
 {
 	int err;
 	pr_debug("rename(%pd2, %pd2, 0x%x)\n", olddentry, newdentry, flags);
-
-	/* RENAME_EXCHANGE: swap source and destination */
+	
 	if (flags & RENAME_EXCHANGE) {
-		/* Manual exchange: remove then swap */
 		if (newdentry->d_inode) {
 			err = vfs_unlink(newdir, newdentry);
 			if (err)
@@ -137,29 +139,21 @@ static inline int ovl_do_rename(struct inode *olddir, struct dentry *olddentry,
 		}
 	}
 	
-	/* RENAME_NOREPLACE: don't overwrite destination */
 	if ((flags & RENAME_NOREPLACE) && newdentry->d_inode) {
 		return -EEXIST;
 	}
-
-	/* RENAME_WHITEOUT: create whiteout at old location */
+	
 	if (flags & RENAME_WHITEOUT) {
-		/* Whiteout handling will be done in caller (dir.c) */
+		err = ovl_do_whiteout(olddir, olddentry);
+		if (err)
+			return err;
 	}
-
-	/* Perform basic rename */
+	
 	err = vfs_rename(olddir, olddentry, newdir, newdentry);
 
 	if (err) {
 		pr_debug("...rename(%pd2, %pd2, ...) = %i\n", olddentry, newdentry, err);
 	}
-	return err;
-}
-
-static inline int ovl_do_whiteout(struct inode *dir, struct dentry *dentry)
-{
-	int err = vfs_whiteout(dir, dentry);
-	pr_debug("whiteout(%pd2) = %i\n", dentry, err);
 	return err;
 }
 
