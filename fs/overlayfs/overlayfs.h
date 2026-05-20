@@ -30,7 +30,6 @@ enum ovl_path_type {
 #define OVL_XATTR_PRE_NAME "trusted.overlay."
 #define OVL_XATTR_PRE_LEN  16
 #define OVL_XATTR_OPAQUE   OVL_XATTR_PRE_NAME"opaque"
-#define OVL_XATTR_REDIRECT  OVL_XATTR_PRE_NAME"redirect"
 
 static inline int ovl_do_rmdir(struct inode *dir, struct dentry *dentry)
 {
@@ -178,10 +177,6 @@ int ovl_removexattr(struct dentry *dentry, const char *name);
 
 struct inode *ovl_new_inode(struct super_block *sb, umode_t mode,
 			    struct ovl_entry *oe);
-bool ovl_redirect_dir(struct super_block *sb);
-int ovl_get_redirect_xattr(struct dentry *dentry, char *buf, int len);
-int ovl_set_redirect_xattr(struct dentry *dentry, const char *redirect);
-int ovl_create_redirect(struct dentry *dentry, struct dentry *upperdentry);
 static inline void ovl_copyattr(struct inode *from, struct inode *to)
 {
 	to->i_uid = from->i_uid;

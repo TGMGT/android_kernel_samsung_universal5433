@@ -301,7 +301,7 @@ int ovl_copy_up_one(struct dentry *parent, struct dentry *dentry,
 
 	if (WARN_ON(!workdir))
 		return -EROFS;
-	
+
 	ovl_path_upper(parent, &parentpath);
 	upperdir = parentpath.dentry;
 
@@ -322,6 +322,14 @@ int ovl_copy_up_one(struct dentry *parent, struct dentry *dentry,
 
 	override_cred->fsuid = stat->uid;
 	override_cred->fsgid = stat->gid;
+	/*
+	 * CAP_SYS_ADMIN for copying up extended attributes
+	 * CAP_DAC_OVERRIDE for create
+	 * CAP_FOWNER for chmod, timestamp update
+	 * CAP_FSETID for chmod
+	 * CAP_CHOWN for chown
+	 * CAP_MKNOD for mknod
+	 */
 	cap_raise(override_cred->cap_effective, CAP_SYS_ADMIN);
 	cap_raise(override_cred->cap_effective, CAP_DAC_OVERRIDE);
 	cap_raise(override_cred->cap_effective, CAP_FOWNER);
@@ -335,11 +343,11 @@ int ovl_copy_up_one(struct dentry *parent, struct dentry *dentry,
 		pr_err("overlayfs: failed to lock workdir+upperdir\n");
 		goto out_unlock;
 	}
-
 	upperdentry = ovl_dentry_upper(dentry);
 	if (upperdentry) {
 		unlock_rename(workdir, upperdir);
 		err = 0;
+		/* Raced with another copy-up?  Do the setattr here */
 		if (attr) {
 			mutex_lock(&upperdentry->d_inode->i_mutex);
 			err = notify_change(upperdentry, attr);
@@ -348,22 +356,12 @@ int ovl_copy_up_one(struct dentry *parent, struct dentry *dentry,
 		goto out_put_cred;
 	}
 
-	/* === Shallow copy for redirect_dir directories === */
-	if (S_ISDIR(stat->mode) && ovl_redirect_dir(dentry->d_sb)) {
-		/* Shallow copy for redirect */
-		err = ovl_copy_up_locked(workdir, upperdir, dentry, lowerpath, stat, attr, link);
-		if (!err)
-			ovl_create_redirect(dentry, ovl_dentry_upper(dentry));
-	} else {
-		/* Normal copy-up */
-		err = ovl_copy_up_locked(workdir, upperdir, dentry, lowerpath, stat, attr, link);
-	}
-
+	err = ovl_copy_up_locked(workdir, upperdir, dentry, lowerpath,
+				 stat, attr, link);
 	if (!err) {
 		/* Restore timestamps on parent (best effort) */
 		ovl_set_timestamps(upperdir, &pstat);
 	}
-
 out_unlock:
 	unlock_rename(workdir, upperdir);
 out_put_cred:

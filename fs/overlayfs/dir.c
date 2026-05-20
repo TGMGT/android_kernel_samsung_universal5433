@@ -14,7 +14,6 @@
 #include <linux/cred.h>
 #include "overlayfs.h"
 #include <linux/fs_struct.h>
-#include <linux/sched.h>
 
 void ovl_cleanup(struct inode *wdir, struct dentry *wdentry)
 {
@@ -723,13 +722,6 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	struct dentry *opaquedir = NULL;
 	const struct cred *old_cred = NULL;
 	struct cred *override_cred = NULL;
-	
-	pr_err("=== overlayfs: RENAME2 ENTER === old='%pd2' new='%pd2' is_dir=%d redirect_dir=%d\n",
-	       old, new, S_ISDIR(old->d_inode->i_mode), ovl_redirect_dir(old->d_sb));
-
-	old_type = ovl_path_type(old);
-	pr_err("overlayfs: rename2 old_type=0x%x (MERGE_OR_LOWER=%d)\n", 
-	       old_type, OVL_TYPE_MERGE_OR_LOWER(old_type) ? 1 : 0);
 
 	err = -EINVAL;
 	if (flags & ~(RENAME_EXCHANGE | RENAME_NOREPLACE))
@@ -741,14 +733,11 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	if (err)
 		goto out;
 
-	/* Don't copy up directory trees unless redirect_dir is enabled */
+	/* Don't copy up directory trees */
 	old_type = ovl_path_type(old);
-	if (OVL_TYPE_MERGE_OR_LOWER(old_type) && is_dir) {
-		if (!ovl_redirect_dir(old->d_sb)) {
-			err = -EXDEV;
-			goto out;
-		}
-	}
+	err = -EXDEV;
+	if (OVL_TYPE_MERGE_OR_LOWER(old_type) && is_dir)
+		goto out;
 
 	if (new->d_inode) {
 		err = ovl_check_sticky(new);
@@ -785,7 +774,6 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	if (err)
 		goto out;
 
-	/* Always copy up old (this will now succeed for dirs when redirect_dir=on) */
 	err = ovl_copy_up(old);
 	if (err)
 		goto out_drop_write;
@@ -798,29 +786,6 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 		if (err)
 			goto out_drop_write;
 	}
-	
-	if (OVL_TYPE_MERGE_OR_LOWER(old_type) && is_dir && ovl_redirect_dir(old->d_sb)) {
-		pr_err("overlayfs: redirect_dir attempting for lower dir '%pd2'\n", old);
-		
-		err = ovl_copy_up(old);
-		if (err) {
-			pr_err("overlayfs: redirect_dir copy_up failed (%i)\n", err);
-			goto out_drop_write;
-		}
-
-		olddentry = ovl_dentry_upper(old);
-		if (!olddentry) {
-			pr_err("overlayfs: redirect_dir no upper dentry!\n");
-			err = -EIO;
-			goto out_drop_write;
-		}
-		
-		err = ovl_create_redirect(old, olddentry);
-		if (err)
-			pr_err("overlayfs: redirect_dir xattr failed (%i) - continuing anyway\n", err);
-		else
-			pr_err("overlayfs: redirect_dir xattr set successfully\n");
-	}
 
 	old_opaque = !OVL_TYPE_PURE_UPPER(old_type);
 	new_opaque = !OVL_TYPE_PURE_UPPER(new_type);
@@ -831,6 +796,13 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 		if (!override_cred)
 			goto out_drop_write;
 
+		/*
+		 * CAP_SYS_ADMIN for setting xattr on whiteout, opaque dir
+		 * CAP_DAC_OVERRIDE for create in workdir
+		 * CAP_FOWNER for removing whiteout from sticky dir
+		 * CAP_FSETID for chmod of opaque dir
+		 * CAP_CHOWN for chown of opaque dir
+		 */
 		cap_raise(override_cred->cap_effective, CAP_SYS_ADMIN);
 		cap_raise(override_cred->cap_effective, CAP_DAC_OVERRIDE);
 		cap_raise(override_cred->cap_effective, CAP_FOWNER);
@@ -851,8 +823,10 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 	if (overwrite) {
 		if (old_opaque) {
 			if (new->d_inode || !new_opaque) {
+				/* Whiteout source */
 				flags |= RENAME_WHITEOUT;
 			} else {
+				/* Switch whiteouts */
 				flags |= RENAME_EXCHANGE;
 			}
 		} else if (is_dir && !new->d_inode && new_opaque) {

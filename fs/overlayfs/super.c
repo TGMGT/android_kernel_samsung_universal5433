@@ -30,8 +30,6 @@ struct ovl_config {
 	char *lowerdir;
 	char *upperdir;
 	char *workdir;
-	bool redirect_dir;
-	bool redirect_follow;
 };
 
 /* private information held for overlayfs's superblock */
@@ -43,8 +41,6 @@ struct ovl_fs {
 	long lower_namelen;
 	/* pathnames of lower and upper dirs, for show_options */
 	struct ovl_config config;
-	bool redirect_dir;
-	bool redirect_follow;
 };
 
 struct ovl_dir_cache;
@@ -535,10 +531,6 @@ static int ovl_show_options(struct seq_file *m, struct dentry *dentry)
 		seq_printf(m, ",upperdir=%s", ufs->config.upperdir);
 		seq_printf(m, ",workdir=%s", ufs->config.workdir);
 	}
-	
-	if (ufs->redirect_dir)
-		seq_printf(m, ",redirect_dir=on");
-	
 	return 0;
 }
 
@@ -563,7 +555,6 @@ enum {
 	OPT_LOWERDIR,
 	OPT_UPPERDIR,
 	OPT_WORKDIR,
-	OPT_REDIRECT_DIR,
 	OPT_ERR,
 };
 
@@ -571,7 +562,6 @@ static const match_table_t ovl_tokens = {
 	{OPT_LOWERDIR,			"lowerdir=%s"},
 	{OPT_UPPERDIR,			"upperdir=%s"},
 	{OPT_WORKDIR,			"workdir=%s"},
-	{OPT_REDIRECT_DIR, "redirect_dir=%s"},
 	{OPT_ERR,			NULL}
 };
 
@@ -624,21 +614,7 @@ static int ovl_parse_opt(char *opt, struct ovl_config *config)
 			if (!config->lowerdir)
 				return -ENOMEM;
 			break;
-			
-	    case OPT_REDIRECT_DIR:
-			if (strcmp(args[0].from, "on") == 0 ||
-			    strcmp(args[0].from, "follow") == 0) {
-				config->redirect_dir = true;
-				config->redirect_follow = true;
-			} else if (strcmp(args[0].from, "nofollow") == 0) {
-				config->redirect_dir = true;
-				config->redirect_follow = false;
-			} else {
-				config->redirect_dir = false;
-				config->redirect_follow = false;
-			}
-			break;
-        
+
 		case OPT_WORKDIR:
 			kfree(config->workdir);
 			config->workdir = match_strdup(&args[0]);
@@ -700,7 +676,7 @@ retry:
 
 		err = ovl_create_real(dir, work, &stat, NULL, NULL, true);
 		if (err)
-			goto out_dput;	
+			goto out_dput;
 	}
 out_unlock:
 	mutex_unlock(&dir->i_mutex);
@@ -870,12 +846,6 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 	err = ovl_parse_opt((char *) data, &ufs->config);
 	if (err)
 		goto out_free_config;
-	
-	ufs->redirect_dir = ufs->config.redirect_dir;
-	ufs->redirect_follow = ufs->config.redirect_follow;
-	
-	if (!ufs->config.upperdir)
-		ufs->redirect_dir = false;
 
 	err = -EINVAL;
 	if (!ufs->config.lowerdir) {
@@ -1087,63 +1057,6 @@ static int __init ovl_init(void)
 static void __exit ovl_exit(void)
 {
 	unregister_filesystem(&ovl_fs_type);
-}
-
-/* ============== redirect_dir support ============== */
-
-bool ovl_redirect_dir(struct super_block *sb)
-{
-	struct ovl_fs *ofs = sb->s_fs_info;
-	return ofs && ofs->redirect_dir;
-}
-
-int ovl_get_redirect_xattr(struct dentry *dentry, char *buf, int len)
-{
-	if (!dentry->d_inode || !dentry->d_inode->i_op->getxattr)
-		return -ENODATA;
-	return vfs_getxattr(dentry, OVL_XATTR_REDIRECT, buf, len);
-}
-
-int ovl_set_redirect_xattr(struct dentry *dentry, const char *redirect)
-{
-	if (!redirect)
-		return 0;
-	return ovl_do_setxattr(dentry, OVL_XATTR_REDIRECT,
-			       redirect, strlen(redirect), 0);
-}
-
-static char *ovl_get_redirect_path(struct dentry *dentry)
-{
-	/* Simple version for now (only basename). Works for top-level renames. */
-	return kstrdup(dentry->d_name.name, GFP_KERNEL);
-}
-
-int ovl_create_redirect(struct dentry *dentry, struct dentry *upperdentry)
-{
-	char *redirect;
-	int err;
-
-	if (!ovl_redirect_dir(dentry->d_sb))
-		return 0;
-
-	pr_err("overlayfs: redirect_dir: setting redirect for '%pd2'\n", dentry);
-
-	redirect = ovl_get_redirect_path(dentry);
-	if (IS_ERR(redirect)) {
-		pr_err("overlayfs: redirect_dir: failed to get redirect path\n");
-		return PTR_ERR(redirect);
-	}
-
-	err = ovl_set_redirect_xattr(upperdentry, redirect);
-	kfree(redirect);
-
-	if (err)
-		pr_err("overlayfs: redirect_dir: failed to set xattr '%s' (%i)\n", 
-		       OVL_XATTR_REDIRECT, err);
-	else
-		pr_err("overlayfs: redirect_dir: SUCCESS set redirect xattr\n");
-
-	return err;
 }
 
 module_init(ovl_init);

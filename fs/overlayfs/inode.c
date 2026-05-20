@@ -321,17 +321,6 @@ out:
 	return err;
 }
 
-int ovl_get_redirect(struct dentry *dentry, char *buf, int len)
-{
-	return vfs_getxattr(dentry, OVL_XATTR_REDIRECT, buf, len);
-}
-
-int ovl_set_redirect(struct dentry *dentry, const char *redirect)
-{
-	return ovl_do_setxattr(dentry, OVL_XATTR_REDIRECT,
-			      redirect, strlen(redirect), 0);
-}
-
 static bool ovl_open_need_copy_up(int flags, enum ovl_path_type type,
 				  struct dentry *realdentry)
 {
