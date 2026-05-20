@@ -885,7 +885,7 @@ static int ovl_rename2(struct inode *olddir, struct dentry *old,
 				    flags);
 	} else {
 		BUG_ON(flags & ~RENAME_EXCHANGE);
-		err = vfs_rename2(current->fs->root.mnt, old_upperdir->d_inode, olddentry, new_upperdir->d_inode, newdentry);
+		err = vfs_rename(old_upperdir->d_inode, olddentry, new_upperdir->d_inode, newdentry);
 	}
 
 	if (err) {
@@ -935,7 +935,7 @@ const struct inode_operations ovl_dir_inode_operations = {
 	.symlink	= ovl_symlink,
 	.unlink		= ovl_unlink,
 	.rmdir		= ovl_rmdir,
-	.rename2	= ovl_rename2,
+	.rename	    = ovl_rename2,
 	.link		= ovl_link,
 	.setattr	= ovl_setattr,
 	.create		= ovl_create,
