@@ -30,6 +30,8 @@ enum ovl_path_type {
 #define OVL_XATTR_PRE_NAME "trusted.overlay."
 #define OVL_XATTR_PRE_LEN  16
 #define OVL_XATTR_OPAQUE   OVL_XATTR_PRE_NAME"opaque"
+#define OVL_XATTR_REDIRECT OVL_XATTR_PRE_NAME"redirect"
+#define OVL_XATTR_INDEX    OVL_XATTR_PRE_NAME"index"
 
 static inline int ovl_do_rmdir(struct inode *dir, struct dentry *dentry)
 {
@@ -111,16 +113,15 @@ static inline int ovl_do_removexattr(struct dentry *dentry, const char *name)
 }
 
 static inline int ovl_do_rename(struct inode *olddir, struct dentry *olddentry,
-				struct inode *newdir, struct dentry *newdentry,
-				unsigned int flags)
+				struct inode *newdir, struct dentry *newdentry)
 {
 	int err;
-	pr_debug("rename2(%pd2, %pd2, 0x%x)\n", olddentry, newdentry, flags);
+	pr_debug("rename(%pd2, %pd2)\n", olddentry, newdentry);
 
-	err = vfs_rename2(current->fs->root.mnt, olddir, olddentry, newdir, newdentry);
+	err = vfs_rename(olddir, olddentry, newdir, newdentry);
 
 	if (err) {
-		pr_debug("...rename2(%pd2, %pd2, ...) = %i\n", olddentry, newdentry, err);
+		pr_debug("...rename(%pd2, %pd2, ...) = %i\n", olddentry, newdentry, err);
 	}
 	return err;
 }
