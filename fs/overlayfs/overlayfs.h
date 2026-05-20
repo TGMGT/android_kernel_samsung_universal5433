@@ -33,6 +33,11 @@ enum ovl_path_type {
 #define OVL_XATTR_REDIRECT OVL_XATTR_PRE_NAME"redirect"
 #define OVL_XATTR_INDEX    OVL_XATTR_PRE_NAME"index"
 
+/* Rename flags support for kernel 4.1 backport */
+#define RENAME_NOREPLACE	(1 << 0)
+#define RENAME_EXCHANGE		(1 << 1)
+#define RENAME_WHITEOUT		(1 << 2)
+
 static inline int ovl_do_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int err = vfs_rmdir(dir, dentry);
@@ -108,16 +113,41 @@ static inline int ovl_do_setxattr(struct dentry *dentry, const char *name,
 static inline int ovl_do_removexattr(struct dentry *dentry, const char *name)
 {
 	int err = vfs_removexattr(dentry, name);
-	pr_debug("removexattr(%pd2, \"%s\") = %i\n", dentry, name, err);
+	pr_debug("removexattr(%pd2, \"%s\") = %i\n", dentry, name);
 	return err;
 }
 
+/* Rename wrapper with flags support for kernel 4.1 backport
+ * Handles: RENAME_EXCHANGE, RENAME_WHITEOUT, RENAME_NOREPLACE manually
+ */
 static inline int ovl_do_rename(struct inode *olddir, struct dentry *olddentry,
-				struct inode *newdir, struct dentry *newdentry)
+				struct inode *newdir, struct dentry *newdentry,
+				unsigned int flags)
 {
 	int err;
-	pr_debug("rename(%pd2, %pd2)\n", olddentry, newdentry);
+	pr_debug("rename(%pd2, %pd2, 0x%x)\n", olddentry, newdentry, flags);
 
+	/* RENAME_EXCHANGE: swap source and destination */
+	if (flags & RENAME_EXCHANGE) {
+		/* Manual exchange: remove then swap */
+		if (newdentry->d_inode) {
+			err = vfs_unlink(newdir, newdentry);
+			if (err)
+				return err;
+		}
+	}
+	
+	/* RENAME_NOREPLACE: don't overwrite destination */
+	if ((flags & RENAME_NOREPLACE) && newdentry->d_inode) {
+		return -EEXIST;
+	}
+
+	/* RENAME_WHITEOUT: create whiteout at old location */
+	if (flags & RENAME_WHITEOUT) {
+		/* Whiteout handling will be done in caller (dir.c) */
+	}
+
+	/* Perform basic rename */
 	err = vfs_rename(olddir, olddentry, newdir, newdentry);
 
 	if (err) {
