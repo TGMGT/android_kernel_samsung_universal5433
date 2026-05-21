@@ -550,7 +550,7 @@ int security_inode_rename(struct inode *old_dir, struct dentry *old_dentry,
 		return 0;
 
 	if (flags & RENAME_EXCHANGE) {
-		int err = security_ops->path_rename(new_dir, new_dentry,
+		int err = security_ops->inode_rename(new_dir, new_dentry,
 						    old_dir, old_dentry);
 		if (err)
 			return err;
