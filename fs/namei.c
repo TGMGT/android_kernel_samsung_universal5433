@@ -4078,7 +4078,7 @@ int vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 	       struct inode *new_dir, struct dentry *new_dentry,
            unsigned int flags)
 {
-	return vfs_rename2(NULL, old_dir, old_dentry, new_dir, new_dentry);
+	return vfs_rename2(NULL, old_dir, old_dentry, new_dir, new_dentry, flags);
 }
 EXPORT_SYMBOL(vfs_rename);
 
