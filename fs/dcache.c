@@ -1671,7 +1671,7 @@ struct dentry *d_splice_alias(struct inode *inode, struct dentry *dentry)
 			BUG_ON(!(new->d_flags & DCACHE_DISCONNECTED));
 			spin_unlock(&inode->i_lock);
 			security_d_instantiate(new, inode);
-			d_move(new, dentry, false);
+			d_move(new, dentry);
 			iput(inode);
 		} else {
 			/* already taking inode->i_lock, so d_add() by hand */
