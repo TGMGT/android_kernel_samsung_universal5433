@@ -129,30 +129,12 @@ static inline int ovl_do_rename(struct inode *olddir, struct dentry *olddentry,
 				unsigned int flags)
 {
 	int err;
-	pr_debug("rename(%pd2, %pd2, 0x%x)\n", olddentry, newdentry, flags);
+	pr_debug("rename2 (%pd2, %pd2, 0x%x)\n", olddentry, newdentry, flags);
 	
-	if (flags & RENAME_EXCHANGE) {
-		if (newdentry->d_inode) {
-			err = vfs_unlink(newdir, newdentry);
-			if (err)
-				return err;
-		}
-	}
-	
-	if ((flags & RENAME_NOREPLACE) && newdentry->d_inode) {
-		return -EEXIST;
-	}
-	
-	if (flags & RENAME_WHITEOUT) {
-		err = ovl_do_whiteout(olddir, olddentry);
-		if (err)
-			return err;
-	}
-	
-	err = vfs_rename(olddir, olddentry, newdir, newdentry);
+	err = vfs_rename(olddir, olddentry, newdir, newdentry, flags);
 
 	if (err) {
-		pr_debug("...rename(%pd2, %pd2, ...) = %i\n", olddentry, newdentry, err);
+		pr_debug("... rename2 (%pd2, %pd2, ...) = %i\n", olddentry, newdentry, err);
 	}
 	return err;
 }
