@@ -3893,7 +3893,7 @@ static int vfs_rename_dir(struct vfsmount *mnt,
 			return error;
 	}
 
-	error = security_inode_rename(old_dir, old_dentry, new_dir, new_dentry);
+	error = security_inode_rename(old_dir, old_dentry, new_dir, new_dentry, flags);
 	if (error)
 		return error;
 
@@ -3912,7 +3912,7 @@ static int vfs_rename_dir(struct vfsmount *mnt,
 
 	if (target)
 		shrink_dcache_parent(new_dentry);
-	if (!flags) {
+	if (!old_dir->i_op->rename2) {
 		error = old_dir->i_op->rename(old_dir, old_dentry, new_dir, new_dentry);
 	} else {
 		error = old_dir->i_op->rename2(old_dir, old_dentry, new_dir, new_dentry, flags);
@@ -3940,7 +3940,7 @@ static int vfs_rename_other(struct inode *old_dir, struct dentry *old_dentry,
 	struct inode *target = new_dentry->d_inode;
 	int error;
 
-	error = security_inode_rename(old_dir, old_dentry, new_dir, new_dentry);
+	error = security_inode_rename(old_dir, old_dentry, new_dir, new_dentry, flags);
 	if (error)
 		return error;
 
@@ -3952,7 +3952,7 @@ static int vfs_rename_other(struct inode *old_dir, struct dentry *old_dentry,
 	if (d_mountpoint(old_dentry)||d_mountpoint(new_dentry))
 		goto out;
 
-	if (!flags) {
+	if (!old_dir->i_op->rename2) {
 		error = old_dir->i_op->rename(old_dir, old_dentry, new_dir, new_dentry);
 	} else {
 		error = old_dir->i_op->rename2(old_dir, old_dentry, new_dir, new_dentry, flags);
@@ -3994,7 +3994,7 @@ int vfs_rename2(struct vfsmount *mnt,
 	if (error)
 		return error;
 
-	if (!old_dir->i_op->rename)
+	if (!old_dir->i_op->rename && !old_dir->i_op->rename2)
 		return -EPERM;
 
 	if (flags && !old_dir->i_op->rename2)
@@ -4036,7 +4036,7 @@ SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
 	bool should_retry = false;
 	int error;
 
-	if (flags)
+	if (flags & ~RENAME_NOREPLACE)
 		return -EINVAL;
 retry:
 	from = user_path_parent(olddfd, oldname, &oldnd, lookup_flags);
@@ -4061,6 +4061,8 @@ retry:
 		goto exit2;
 
 	new_dir = newnd.path.dentry;
+	if (flags & RENAME_NOREPLACE)
+		error = -EEXIST;
 	if (newnd.last_type != LAST_NORM)
 		goto exit2;
 
@@ -4082,22 +4084,25 @@ retry:
 	error = -ENOENT;
 	if (!old_dentry->d_inode)
 		goto exit4;
-	/* unless the source is a directory trailing slashes give -ENOTDIR */
-	if (!S_ISDIR(old_dentry->d_inode->i_mode)) {
-		error = -ENOTDIR;
-		if (oldnd.last.name[oldnd.last.len])
-			goto exit4;
-		if (newnd.last.name[newnd.last.len])
-			goto exit4;
-	}
-	/* source should not be ancestor of target */
-	error = -EINVAL;
-	if (old_dentry == trap)
-		goto exit4;
 	new_dentry = lookup_hash(&newnd);
 	error = PTR_ERR(new_dentry);
 	if (IS_ERR(new_dentry))
 		goto exit4;
+	error = -EEXIST;
+	if ((flags & RENAME_NOREPLACE) && d_is_positive(new_dentry))
+		goto exit5;
+	/* unless the source is a directory trailing slashes give -ENOTDIR */
+	if (!S_ISDIR(old_dentry->d_inode->i_mode)) {
+		error = -ENOTDIR;
+		if (oldnd.last.name[oldnd.last.len])
+			goto exit5;
+		if (newnd.last.name[newnd.last.len])
+			goto exit5;
+	}
+	/* source should not be ancestor of target */
+	error = -EINVAL;
+	if (old_dentry == trap)
+		goto exit5;
 	/* target should not be an ancestor of source */
 	error = -ENOTEMPTY;
 	if (new_dentry == trap)
