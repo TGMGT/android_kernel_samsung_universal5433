@@ -90,7 +90,7 @@ enum ovl_path_type ovl_path_type(struct dentry *dentry)
 
 static struct dentry *ovl_upperdentry_dereference(struct ovl_entry *oe)
 {
-	return rcu_dereference_raw(oe->__upperdentry);
+	return lockless_dereference(oe->__upperdentry);
 }
 
 void ovl_path_upper(struct dentry *dentry, struct path *path)
