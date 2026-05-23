@@ -51,10 +51,10 @@ struct super_block *ovl_same_sb(struct super_block *sb)
 	return ofs->same_sb;
 }
 
-static inline bool uuid_is_null(const unsigned char *uuid)
+static inline bool uuid_is_null(const uuid_t *uuid)
 {
-	static const unsigned char null_uuid[16] = {0};
-	return memcmp(uuid, null_uuid, 16) == 0;
+	static const uuid_t null_uuid = {{0}};
+	return memcmp(uuid, &null_uuid, sizeof(uuid_t)) == 0;
 }
 
 bool ovl_can_decode_fh(struct super_block *sb)

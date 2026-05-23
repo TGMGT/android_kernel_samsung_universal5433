@@ -68,50 +68,32 @@ static int ovl_check_append_only(struct inode *inode, int flag)
 	return 0;
 }
 
+/*
+ * 3.10 compatible ovl_d_real()
+ * No d_real() helper available
+ */
 static struct dentry *ovl_d_real(struct dentry *dentry,
-				 const struct inode *inode,
-				 unsigned int open_flags, unsigned int flags)
+				 struct inode *inode,
+				 unsigned int open_flags,
+				 unsigned int flags)
 {
 	struct dentry *real;
-	int err;
 
-	if (flags & D_REAL_UPPER)
-		return ovl_dentry_upper(dentry);
-
-	if (!S_ISREG(dentry->d_inode->i_mode)) {
-		if (!inode || inode == d_inode(dentry))
-			return dentry;
-		goto bug;
-	}
-
-	if (open_flags) {
-		err = ovl_open_maybe_copy_up(dentry, open_flags);
-		if (err)
-			return ERR_PTR(err);
-	}
-
+	/* Upper takes priority */
 	real = ovl_dentry_upper(dentry);
-	if (real && (!inode || inode == d_inode(real))) {
-		if (!inode) {
-			err = ovl_check_append_only(d_inode(real), open_flags);
-			if (err)
-				return ERR_PTR(err);
-		}
-		return real;
+	if (real) {
+		if (!inode || inode == d_inode(real))
+			return real;
 	}
 
+	/* Then lower */
 	real = ovl_dentry_lower(dentry);
-	if (!real)
-		goto bug;
+	if (real) {
+		if (!inode || inode == d_inode(real))
+			return real;
+	}
 
-	/* Handle recursion */
-	real = d_real(real, inode, open_flags, 0);
-
-	if (!inode || inode == d_inode(real))
-		return real;
-bug:
-	WARN(1, "ovl_d_real(%pd4, %s:%lu): real dentry not found\n", dentry,
-	     inode ? inode->i_sb->s_id : "NULL", inode ? inode->i_ino : 0);
+	/* Fallback to overlay dentry itself */
 	return dentry;
 }
 
@@ -802,7 +784,7 @@ static int ovl_other_xattr_set(const struct xattr_handler *handler,
 
 static const struct xattr_handler __maybe_unused
 ovl_posix_acl_access_xattr_handler = {
-	.name = XATTR_NAME_POSIX_ACL_ACCESS,
+	.prefix = XATTR_NAME_POSIX_ACL_ACCESS,
 	.flags = ACL_TYPE_ACCESS,
 	.get = ovl_posix_acl_xattr_get,
 	.set = ovl_posix_acl_xattr_set,
@@ -810,7 +792,7 @@ ovl_posix_acl_access_xattr_handler = {
 
 static const struct xattr_handler __maybe_unused
 ovl_posix_acl_default_xattr_handler = {
-	.name = XATTR_NAME_POSIX_ACL_DEFAULT,
+	.prefix = XATTR_NAME_POSIX_ACL_DEFAULT,
 	.flags = ACL_TYPE_DEFAULT,
 	.get = ovl_posix_acl_xattr_get,
 	.set = ovl_posix_acl_xattr_set,
@@ -875,6 +857,7 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 
 	sb->s_stack_depth = 0;
 	sb->s_maxbytes = MAX_LFS_FILESIZE;
+	sb->s_flags |= MS_POSIXACL | MS_NOREMOTELOCK;
 	if (ufs->config.upperdir) {
 		if (!ufs->config.workdir) {
 			pr_err("overlayfs: missing 'workdir'\n");
@@ -1117,7 +1100,8 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 		goto out_put_indexdir;
 
 	/* Never override disk quota limits or use reserved space */
-	cap_lower(cred->cap_effective, CAP_SYS_RESOURCE);
+	if (capable(CAP_SYS_RESOURCE))
+	    cap_lower(cred->cap_effective, CAP_SYS_RESOURCE);
 
 	err = -ENOMEM;
 	oe = ovl_alloc_entry(numlower);
@@ -1224,10 +1208,9 @@ static int __init ovl_init(void)
 	int err;
 
 	ovl_inode_cachep = kmem_cache_create("ovl_inode",
-					     sizeof(struct ovl_inode), 0,
-					     (SLAB_RECLAIM_ACCOUNT|
-					      SLAB_MEM_SPREAD|SLAB_ACCOUNT),
-					     ovl_inode_init_once);
+				     sizeof(struct ovl_inode), 0,
+				     SLAB_RECLAIM_ACCOUNT | SLAB_MEM_SPREAD,
+				     ovl_inode_init_once);
 	if (ovl_inode_cachep == NULL)
 		return -ENOMEM;
 

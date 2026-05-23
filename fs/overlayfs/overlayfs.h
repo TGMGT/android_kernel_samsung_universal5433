@@ -9,6 +9,7 @@
 
 #include <linux/kernel.h>
 #include <linux/uuid.h>
+#include <linux/page-flags.h>
 
 enum ovl_path_type {
 	__OVL_PATH_UPPER	= (1 << 0),
@@ -61,6 +62,21 @@ enum ovl_flag {
 #ifndef IS_WHITEOUT
 #define IS_WHITEOUT(inode) \
 	(S_ISCHR((inode)->i_mode) && (inode)->i_rdev == WHITEOUT_DEV)
+#endif
+
+#ifndef uuid_t
+typedef struct {
+	__u8 b[16];
+} uuid_t;
+#endif
+
+/* 3.10 compatibility */
+#ifndef PAGE_CACHE_SIZE
+#define PAGE_CACHE_SIZE PAGE_SIZE
+#endif
+
+#ifndef MS_NOREMOTELOCK
+#define MS_NOREMOTELOCK 0
 #endif
 
 /* On-disk and in-memeory format for redirect by file handle */
