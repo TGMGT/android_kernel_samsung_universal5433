@@ -52,7 +52,7 @@ static void ovl_dentry_release(struct dentry *dentry)
 	}
 }
 
-static int ovl_check_append_only(struct inode *inode, int flag)
+static int ovl_check_append_only(struct inode *inode, int flag) __maybe_unused
 {
 	/*
 	 * This test was moot in vfs may_open() because overlay inode does
@@ -75,7 +75,7 @@ static int ovl_check_append_only(struct inode *inode, int flag)
 static struct dentry *ovl_d_real(struct dentry *dentry,
 				 struct inode *inode,
 				 unsigned int open_flags,
-				 unsigned int flags)
+				 unsigned int flags) __maybe_unused
 {
 	struct dentry *real;
 
@@ -703,9 +703,9 @@ ovl_posix_acl_xattr_set(const struct xattr_handler *handler,
 			return PTR_ERR(acl);
 	}
 	err = -EOPNOTSUPP;
-	if (!IS_POSIXACL(d_inode(workdir)->i_sb))
+	if (!IS_POSIXACL(d_inode(workdir)))
 		goto out_acl_release;
-	if (!realinode->i_op->set_acl)
+	if (!IS_ENABLED(CONFIG_FS_POSIX_ACL) || !realinode->i_op->set_acl)
 		goto out_acl_release;
 	if (handler->flags == ACL_TYPE_DEFAULT && !S_ISDIR(inode->i_mode)) {
 		err = acl ? -EACCES : 0;
@@ -1128,10 +1128,10 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 
 	root_dentry->d_fsdata = oe;
 
-	ovl_inode_init(d_inode(root_dentry), upperpath.dentry,
-		       ovl_dentry_lower(root_dentry));
-	
 	ovl_set_flag(OVL_IMPURE, d_inode(root_dentry));
+
+    ovl_inode_init(d_inode(root_dentry), upperpath.dentry,
+	       ovl_dentry_lower(root_dentry));
 	sb->s_root = root_dentry;
 
 	return 0;
