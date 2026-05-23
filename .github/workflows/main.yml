@@ -1,7 +1,7 @@
 name: Build gts210ltexx Kernel (Universal5433)
 
 on:
-  workflow_dispatch: # Allows manual trigger from the "Actions" tab
+  workflow_dispatch:
 
 jobs:
   build:
@@ -10,10 +10,10 @@ jobs:
       - name: Checkout Kernel Source
         uses: actions/checkout@v4
         with:
-            submodules: recursive
-            fetch-depth: 0
+          submodules: recursive
+          fetch-depth: 0
 
-      - name: Fix Git Permissions (Dubious Ownership)
+      - name: Fix Git Permissions
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/KernelSU"
@@ -21,74 +21,71 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential bison flex libssl-dev libcrypt-dev cmake device-tree-compiler libfdt-dev
+          sudo apt-get install -y bc build-essential bison flex libssl-dev libcrypt-dev \
+                                 device-tree-compiler libfdt-dev ccache
 
-      - name: Setup ARM32 Toolchain
+      - name: Setup Toolchain
         run: |
-          # Clones the specific Linaro GCC 4.9 toolchain for 32-bit ARM
           git clone --depth=1 https://github.com/YumeMichi/linaro-arm-eabi-4.9 toolchain
           sudo cp -r toolchain/* /usr/local/
           sudo ldconfig
 
-      - name: Setup Ccache
-        uses: jianmingyong/ccache-action@v1
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
         with:
-          ccache-key-prefix: ccache_cache_ubuntu-22.04
+          key: kernel-gts210ltexx-${{ github.ref }}
+          restore-keys: |
+            kernel-gts210ltexx-
           max-size: 5G
+          verbose: true
 
-      - name: Build Kernel and DTBs
+      - name: Build Kernel
         run: |
-          export CCACHE_DIR="${{ github.workspace }}/.ccache" 
-          mkdir -p "$CCACHE_DIR"
-          
+          export ARCH=arm
+          export CROSS_COMPILE="arm-eabi-"
+          export CC="ccache arm-eabi-gcc"
+          export HOSTCC="ccache gcc"
+          export HOSTCXX="ccache g++"
+
+          # ccache configuration
           ccache --set-config=base_dir=${{ github.workspace }}
           ccache --set-config=hash_dir=false
           ccache --set-config=compiler_check=content
-          ccache --set-config=sloppiness=file_macro,time_macros,include_file_mtime,locale
-          
-          export ARCH=arm
-          export HOSTCC="ccache gcc"
-          export HOSTCXX="ccache g++"
-          export CROSS_COMPILE="arm-eabi-"
-          export CC="ccache arm-eabi-gcc"
+          ccache --set-config=sloppiness=file_macro,time_macros,include_file_mtime,locale,pch_defines
 
           export KBUILD_BUILD_TIMESTAMP="2026-04-17"
           export KBUILD_BUILD_USER="android-gts210ltexx"
-          export KBUILD_BUILD_HOST="Ubuntu-latest-github"
-          
+          export KBUILD_BUILD_HOST="GitHub-Actions"
+
           make lineage_gts210ltexx_defconfig
-          
-          # Build the zImage and force the compilation of DTBs
+
+          # Build
           make -j$(nproc) zImage Image dtbs
 
+          echo "=== ccache Statistics ==="
           ccache -s
 
       - name: Filter DTBs
         run: |
-          # Step: Pick only LTE DTBs using the underscore to avoid wifi versions
           mkdir -p filtered_dtbs
-          cp arch/arm/boot/dts/exynos5433-gts210_*.dtb filtered_dtbs/
+          cp arch/arm/boot/dts/exynos5433-gts210_*.dtb filtered_dtbs/ 2>/dev/null || true
 
           cp arch/arm/boot/zImage zImage
           cp arch/arm/boot/Image Image
-          
-      - name: Build and Run dtbTool
+
+      - name: Build dt.img
         run: |
-          ls -R $GITHUB_WORKSPACE/filtered_dtbs/
-          # Download and compile the Exynos-specific dtbTool
           git clone https://github.com/dsankouski/dtbtool-exynos.git dtbtool_src
           cd dtbtool_src
           gcc -O2 -Wall dtbtool-exynos.c -o dtbTool-exynos -lfdt
-          
-          # Use the compiled tool to create dt.img from your filtered DTBs
-          ./dtbTool-exynos -o $GITHUB_WORKSPACE/dt.img $GITHUB_WORKSPACE/filtered_dtbs/*.dtb
-          cd $GITHUB_WORKSPACE
+          ./dtbTool-exynos -o ../dt.img ../filtered_dtbs/*.dtb
+          cd ..
 
-      - name: Upload Build Results
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: gts210ltexx-kernel-assets
           path: |
-            Image
             zImage
+            Image
             dt.img
