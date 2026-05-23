@@ -406,19 +406,14 @@
 #define __NR_process_vm_writev		(__NR_SYSCALL_BASE+377)
 #define __NR_kcmp			(__NR_SYSCALL_BASE+378)
 #define __NR_finit_module		(__NR_SYSCALL_BASE+379)
-/* Reserve for later
 #define __NR_sched_setattr		(__NR_SYSCALL_BASE+380)
 #define __NR_sched_getattr		(__NR_SYSCALL_BASE+381)
 #define __NR_renameat2			(__NR_SYSCALL_BASE+382)
-*/
 #define __NR_seccomp			(__NR_SYSCALL_BASE+383)
 
 #define __NR_getrandom			(__NR_SYSCALL_BASE+384)
 #define __NR_memfd_create		(__NR_SYSCALL_BASE+385)
 
-/*
- * The following SWIs are ARM private.
- */
 #define __ARM_NR_BASE			(__NR_SYSCALL_BASE+0x0f0000)
 #define __ARM_NR_breakpoint		(__ARM_NR_BASE+1)
 #define __ARM_NR_cacheflush		(__ARM_NR_BASE+2)
