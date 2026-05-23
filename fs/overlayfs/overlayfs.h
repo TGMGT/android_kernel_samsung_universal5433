@@ -79,6 +79,10 @@ typedef struct {
 #define MS_NOREMOTELOCK 0
 #endif
 
+#ifndef OVERLAYFS_SUPER_MAGIC
+#define OVERLAYFS_SUPER_MAGIC 0x794c7630
+#endif
+
 /* On-disk and in-memeory format for redirect by file handle */
 struct ovl_fh {
 	u8 version;	/* 0 */
@@ -197,9 +201,7 @@ static inline int ovl_do_whiteout(struct inode *dir, struct dentry *dentry)
 static inline struct dentry *ovl_do_tmpfile(struct dentry *dentry, umode_t mode)
 {
 	struct dentry *ret = vfs_tmpfile(dentry, mode, 0);
-	int err = IS_ERR(ret) ? PTR_ERR(ret) : 0;
-
-	pr_debug("tmpfile(%pd2, 0%o) = %i\n", dentry, mode, err);
+	pr_debug("tmpfile(%pd2, 0%o) = %p\n", dentry, mode, ret);
 	return ret;
 }
 

@@ -79,21 +79,14 @@ static struct dentry *ovl_d_real(struct dentry *dentry,
 {
 	struct dentry *real;
 
-	/* Upper takes priority */
 	real = ovl_dentry_upper(dentry);
-	if (real) {
-		if (!inode || inode == d_inode(real))
-			return real;
-	}
+	if (real && (!inode || inode == d_inode(real)))
+		return real;
 
-	/* Then lower */
 	real = ovl_dentry_lower(dentry);
-	if (real) {
-		if (!inode || inode == d_inode(real))
-			return real;
-	}
+	if (real && (!inode || inode == d_inode(real)))
+		return real;
 
-	/* Fallback to overlay dentry itself */
 	return dentry;
 }
 
@@ -140,12 +133,10 @@ static int ovl_dentry_weak_revalidate(struct dentry *dentry, unsigned int flags)
 
 static const struct dentry_operations ovl_dentry_operations = {
 	.d_release = ovl_dentry_release,
-	.d_real = ovl_d_real,
 };
 
 static const struct dentry_operations ovl_reval_dentry_operations = {
 	.d_release = ovl_dentry_release,
-	.d_real = ovl_d_real,
 	.d_revalidate = ovl_dentry_revalidate,
 	.d_weak_revalidate = ovl_dentry_weak_revalidate,
 };
@@ -712,7 +703,7 @@ ovl_posix_acl_xattr_set(const struct xattr_handler *handler,
 			return PTR_ERR(acl);
 	}
 	err = -EOPNOTSUPP;
-	if (!IS_POSIXACL(d_inode(workdir)))
+	if (!IS_POSIXACL(d_inode(workdir)->i_sb))
 		goto out_acl_release;
 	if (!realinode->i_op->set_acl)
 		goto out_acl_release;
@@ -1139,7 +1130,8 @@ static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 
 	ovl_inode_init(d_inode(root_dentry), upperpath.dentry,
 		       ovl_dentry_lower(root_dentry));
-
+	
+	ovl_set_flag(OVL_IMPURE, d_inode(root_dentry));
 	sb->s_root = root_dentry;
 
 	return 0;
