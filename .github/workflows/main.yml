@@ -10,14 +10,21 @@ jobs:
       - name: Checkout Kernel Source
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: false
           fetch-depth: 0
 
       - name: Fix Git Permissions
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git config --global --add safe.directory "$GITHUB_WORKSPACE/KernelSU"
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://github.com/".insteadOf "git://"
 
+      - name: Initialize Submodules Manually
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --force --recursive
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/KernelSU"
+      
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
