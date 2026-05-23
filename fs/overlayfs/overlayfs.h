@@ -83,6 +83,10 @@ typedef struct {
 #define OVERLAYFS_SUPER_MAGIC 0x794c7630
 #endif
 
+#ifndef d_inode
+#define d_inode(dentry) ((dentry)->d_inode)
+#endif
+
 /* On-disk and in-memeory format for redirect by file handle */
 struct ovl_fh {
 	u8 version;	/* 0 */
@@ -200,9 +204,7 @@ static inline int ovl_do_whiteout(struct inode *dir, struct dentry *dentry)
 
 static inline struct dentry *ovl_do_tmpfile(struct dentry *dentry, umode_t mode)
 {
-	struct dentry *ret = vfs_tmpfile(dentry, mode, 0);
-	pr_debug("tmpfile(%pd2, 0%o) = %p\n", dentry, mode, ret);
-	return ret;
+	return ERR_PTR(-EOPNOTSUPP);
 }
 
 /* util.c */
