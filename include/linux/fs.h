@@ -703,8 +703,36 @@ enum inode_i_mutex_lock_class
 	I_MUTEX_PARENT,
 	I_MUTEX_CHILD,
 	I_MUTEX_XATTR,
-	I_MUTEX_QUOTA
+	I_MUTEX_NONDIR2
 };
+
+static inline void inode_lock(struct inode *inode)
+{
+	mutex_lock(&inode->i_mutex);
+}
+
+static inline void inode_unlock(struct inode *inode)
+{
+	mutex_unlock(&inode->i_mutex);
+}
+
+static inline int inode_trylock(struct inode *inode)
+{
+	return mutex_trylock(&inode->i_mutex);
+}
+
+static inline int inode_is_locked(struct inode *inode)
+{
+	return mutex_is_locked(&inode->i_mutex);
+}
+
+static inline void inode_lock_nested(struct inode *inode, unsigned subclass)
+{
+	mutex_lock_nested(&inode->i_mutex, subclass);
+}
+
+void lock_two_nondirectories(struct inode *, struct inode*);
+void unlock_two_nondirectories(struct inode *, struct inode*);
 
 /*
  * NOTE: in a 32bit arch with a preemptable kernel and
