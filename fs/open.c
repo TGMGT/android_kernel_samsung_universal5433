@@ -673,7 +673,7 @@ int open_check_o_direct(struct file *f)
 	return 0;
 }
 
-int do_dentry_open(struct file *f,
+static int do_dentry_open(struct file *f,
 			  int (*open)(struct inode *, struct file *),
 			  const struct cred *cred)
 {
@@ -755,7 +755,6 @@ cleanup_file:
 	f->f_inode = NULL;
 	return error;
 }
-EXPORT_SYMBOL(do_dentry_open);
 
 /**
  * finish_open - finish opening a file
@@ -1094,30 +1093,3 @@ int nonseekable_open(struct inode *inode, struct file *filp)
 }
 
 EXPORT_SYMBOL(nonseekable_open);
-
-struct file *vfs_dentry_open(const struct path *path, int flags,
-			     const struct cred *cred)
-{
-	struct file *f;
-	int error;
-
-	f = get_empty_filp();
-	if (!IS_ERR(f)) {
-		f->f_flags = flags;
-		f->f_path = *path;
-
-		/* If the underlying file system supports custom dentry_open hooks, call it */
-		if (path->dentry->d_inode->i_op->dentry_open) {
-			error = path->dentry->d_inode->i_op->dentry_open(path->dentry, f, cred);
-		} else {
-			error = do_dentry_open(f, path->dentry->d_inode->i_fop->open, cred);
-		}
-
-		if (error) {
-			fput(f);
-			f = ERR_PTR(error);
-		}
-	}
-	return f;
-}
-EXPORT_SYMBOL(vfs_dentry_open);
