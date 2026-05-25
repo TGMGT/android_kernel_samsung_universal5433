@@ -4152,7 +4152,7 @@ retry:
 	if (IS_ERR(new_dentry))
 		goto exit4;
 	error = -EEXIST;
-	if ((flags & RENAME_NOREPLACE) && d_is_positive(new_dentry))
+	if ((flags & RENAME_NOREPLACE) && new_dentry->d_inode)
 		goto exit5;
 
 	if (flags & RENAME_EXCHANGE) {
