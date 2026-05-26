@@ -1284,21 +1284,16 @@ static void check_unsafe_exec(struct linux_binprm *bprm)
 	spin_unlock(&p->fs->lock);
 }
 
-/*
- * Fill the binprm structure from the inode. 
- * Check permissions, then read the first 128 (BINPRM_BUF_SIZE) bytes
- *
- * This may be called multiple times for binary chains (scripts for example).
- */
-int prepare_binprm(struct linux_binprm *bprm)
+static void bprm_fill_uid(struct linux_binprm *bprm)
 {
-	struct inode *inode = file_inode(bprm->file);
-	umode_t mode = inode->i_mode;
-	int retval;
-
+	struct inode *inode;
+	unsigned int mode;
+	kuid_t uid;
+	kgid_t gid;
 
 	/* clear any previous set[ug]id data from a previous binary */
 	bprm->cred->euid = current_euid();
+	bprm->cred->egid = current_egid();
 
 	if (bprm->file->f_path.mnt->mnt_flags & MNT_NOSUID)
 		return;
@@ -1360,7 +1355,6 @@ int prepare_binprm(struct linux_binprm *bprm)
 	memset(bprm->buf, 0, BINPRM_BUF_SIZE);
 	return kernel_read(bprm->file, 0, bprm->buf, BINPRM_BUF_SIZE);
 }
-
 EXPORT_SYMBOL(prepare_binprm);
 
 /*
