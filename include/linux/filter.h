@@ -486,7 +486,6 @@ static inline int bpf_tell_extensions(void)
 {
 	return SKF_AD_MAX;
 }
-#endif
 
 enum {
 	BPF_S_RET_K = 1,
