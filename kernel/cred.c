@@ -430,6 +430,18 @@ int copy_creds(struct task_struct *p, unsigned long clone_flags)
 #endif /*CONFIG_TIMA_RKP_RO_CRED*/
 	int ret;
 
+	/*
+	 * Disabling cred sharing among the same thread group. This
+	 * is needed because we only added one back pointer in cred.
+	 *
+	 * This should NOT in any way change kernel logic, if we think about what
+	 * happens when a thread needs to change its credentials: it will just
+	 * create a new one, while all other threads in the same thread group still
+	 * reference the old one, whose reference counter decreases by 2.
+	 */
+#ifdef CONFIG_TIMA_RKP_RO_CRED
+	if(!rkp_cred_enable){
+#endif /*CONFIG_TIMA_RKP_RO_CRED*/
 	if (
 #ifdef CONFIG_KEYS
 		!p->cred->thread_keyring &&
