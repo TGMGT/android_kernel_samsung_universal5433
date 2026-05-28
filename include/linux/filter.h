@@ -38,7 +38,7 @@ struct bpf_prog_aux;
 /* Additional register mappings for converted user programs. */
 #define BPF_REG_A	BPF_REG_0
 #define BPF_REG_X	BPF_REG_7
-#define BPF_REG_TMP	BPF_REG_8*/
+#define BPF_REG_TMP	BPF_REG_8
 
 /* BPF program can access up to 512 bytes of stack space. */
 #define MAX_BPF_STACK	512
