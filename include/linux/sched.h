@@ -624,17 +624,13 @@ struct signal_struct {
 	struct mutex cred_guard_mutex;	/* guard against foreign influences on
 					 * credential calculations
 					 * (notably. ptrace) */
+    struct rw_semaphore group_rwsem;
 };
 
 /* Context switch must be unlocked if interrupts are to be enabled */
 #ifdef __ARCH_WANT_INTERRUPTS_ON_CTXSW
 # define __ARCH_WANT_UNLOCKED_CTXSW
 #endif
-
-struct mutex cred_guard_mutex;	/* guard against foreign influences on
-		        * credential calculations
-	            * (notably. ptrace) */
-};
 
 /*
  * Bits in flags field of signal_struct.
