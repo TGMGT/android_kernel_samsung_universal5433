@@ -22,6 +22,7 @@
 #include <linux/syscalls.h>
 
 /* #define SECCOMP_DEBUG 1 */
+#define sock_filter_int bpf_insn
 
 #ifdef CONFIG_SECCOMP_FILTER
 #include <asm/syscall.h>
@@ -57,6 +58,7 @@ struct seccomp_filter {
 	atomic_t usage;
 	struct seccomp_filter *prev;
 	struct bpf_prog *prog;
+    unsigned short len;
 };
 
 /* Limit any path through the tree to 256KB worth of instructions. */
@@ -398,8 +400,8 @@ static struct seccomp_filter * seccomp_prepare_filter(struct sock_fprog *fprog)
  
         /* Allocate a new seccomp_filter */
         filter = kzalloc(sizeof(struct seccomp_filter) +
-                         sizeof(struct sock_filter_int) * new_len,
-                         GFP_KERNEL|__GFP_NOWARN);
+		                 sizeof(struct bpf_insn) * new_len,
+		                 GFP_KERNEL|__GFP_NOWARN);
         if (!filter)
                 goto free_prog;
  
@@ -424,7 +426,7 @@ free_filter_prog:
 free_filter:
 	kfree(filter);
 free_prog:
-	kfree(fp)
+	kfree(fp);
 	return ERR_PTR(ret);
 }
 
