@@ -117,7 +117,7 @@ static int seccomp_check_filter(struct sock_filter *filter, unsigned int flen)
 			ftest->k = sizeof(struct seccomp_data);
 			continue;
 		case BPF_S_LDX_W_LEN:
-+                       ftest->code = BPF_LDX | BPF_IMM;
+            ftest->code = BPF_LDX | BPF_IMM;
 			ftest->k = sizeof(struct seccomp_data);
 			continue;
 		/* Explicitly include allowed calls. */
