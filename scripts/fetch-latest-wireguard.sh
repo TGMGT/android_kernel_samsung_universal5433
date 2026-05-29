@@ -33,8 +33,8 @@ if ! curl -A "$USER_AGENT" -LsS --connect-timeout 20 -f \
 
     echo "zx2c4 failed, trying GitHub..."
     curl -A "$USER_AGENT" -LsS --connect-timeout 40 -f \
-      "https://codeload.github.com/WireGuard/wireguard-linux-compat/tar.gz/v${VERSION}" \
-      | tar -C "net/wireguard" -xzf - --strip-components=1 "wireguard-linux-compat-v${VERSION}/src"
+      "https://codeload.github.com/WireGuard/wireguard-linux-compat/tar.gz/${VERSION}" \
+      | tar -C "net/wireguard" -xzf - --strip-components=1 "wireguard-linux-compat-${VERSION}/src"
 fi
 
 sed -i 's/tristate/bool/;s/default m/default y/;' net/wireguard/Kconfig
