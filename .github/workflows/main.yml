@@ -60,10 +60,6 @@ jobs:
           ccache --set-config=compiler_check=content
           ccache --set-config=sloppiness=file_macro,time_macros,include_file_mtime,locale,pch_defines
 
-          export KBUILD_BUILD_TIMESTAMP="2026-04-17"
-          export KBUILD_BUILD_USER="android-gts210ltexx"
-          export KBUILD_BUILD_HOST="GitHub-Actions"
-
           make lineage_gts210ltexx_defconfig
 
           # Build
