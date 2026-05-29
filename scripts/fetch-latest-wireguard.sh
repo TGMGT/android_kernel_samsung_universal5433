@@ -24,14 +24,20 @@ fi
 rm -rf net/wireguard
 mkdir -p net/wireguard
 
-echo "Downloading wireguard-linux-compat $VERSION from GitHub..."
+echo "Downloading wireguard-linux-compat $VERSION..."
 
-curl -A "$USER_AGENT" -LsS --connect-timeout 40 -f \
-  "https://codeload.github.com/WireGuard/wireguard-linux-compat/tar.gz/v${VERSION}" \
-  | tar -C "net/wireguard" -xzf - --strip-components=2 "wireguard-linux-compat-v${VERSION}/src"
+# Try zx2c4 first
+if ! curl -A "$USER_AGENT" -LsS --connect-timeout 20 -f \
+  "https://git.zx2c4.com/wireguard-linux-compat/snapshot/wireguard-linux-compat-$VERSION.tar.xz" \
+  | tar -C "net/wireguard" -xJf - --strip-components=2 "wireguard-linux-compat-$VERSION/src" 2>/dev/null; then
+
+    echo "zx2c4 failed, trying GitHub..."
+    curl -A "$USER_AGENT" -LsS --connect-timeout 40 -f \
+      "https://codeload.github.com/WireGuard/wireguard-linux-compat/tar.gz/v${VERSION}" \
+      | tar -C "net/wireguard" -xzf - --strip-components=1 "wireguard-linux-compat-v${VERSION}/src"
+fi
 
 sed -i 's/tristate/bool/;s/default m/default y/;' net/wireguard/Kconfig
 sed -i '1i #ifndef fallthrough\n#define fallthrough do {} while (0)\n#endif' net/wireguard/compat/siphash/siphash.c
-
 touch net/wireguard/.check
 echo "WireGuard $VERSION downloaded successfully."
