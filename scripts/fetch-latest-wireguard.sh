@@ -26,15 +26,15 @@ mkdir -p net/wireguard
 
 echo "Downloading wireguard-linux-compat $VERSION..."
 
-# Try zx2c4 first
-if ! curl -A "$USER_AGENT" -LsS --connect-timeout 20 -f \
+# zx2c4 primary (no v added)
+if ! curl -A "$USER_AGENT" -LsS --connect-timeout 25 -f \
   "https://git.zx2c4.com/wireguard-linux-compat/snapshot/wireguard-linux-compat-$VERSION.tar.xz" \
   | tar -C "net/wireguard" -xJf - --strip-components=2 "wireguard-linux-compat-$VERSION/src" 2>/dev/null; then
 
     echo "zx2c4 failed, trying GitHub..."
     curl -A "$USER_AGENT" -LsS --connect-timeout 40 -f \
       "https://codeload.github.com/WireGuard/wireguard-linux-compat/tar.gz/${VERSION}" \
-      | tar -C "net/wireguard" -xzf - --strip-components=1 "wireguard-linux-compat-${VERSION}/src"
+      | tar -C "net/wireguard" -xzf - --strip-components=2 "wireguard-linux-compat-${VERSION}/src"
 fi
 
 sed -i 's/tristate/bool/;s/default m/default y/;' net/wireguard/Kconfig
