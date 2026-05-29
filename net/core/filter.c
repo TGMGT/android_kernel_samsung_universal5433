@@ -45,7 +45,7 @@
 #include <linux/seccomp.h>
 #include <linux/if_vlan.h>
 
-/* Registers */
+/* 
 #define BPF_R0	regs[BPF_REG_0]
 #define BPF_R1	regs[BPF_REG_1]
 #define BPF_R2	regs[BPF_REG_2]
@@ -58,13 +58,13 @@
 #define BPF_R9	regs[BPF_REG_9]
 #define BPF_R10	regs[BPF_REG_10]
 
-/* Named registers */
 #define DST	regs[insn->dst_reg]
 #define SRC	regs[insn->src_reg]
 #define FP	regs[BPF_REG_FP]
 #define ARG1	regs[BPF_REG_ARG1]
 #define CTX	regs[BPF_REG_CTX]
 #define IMM	insn->imm
+*/
 
 /* No hurry in this branch
  *
