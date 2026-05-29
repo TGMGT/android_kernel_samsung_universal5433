@@ -451,8 +451,7 @@ int do_select(int n, fd_set_bits *fds, struct timespec *end_time)
 					f_op = f.file->f_op;
 					mask = DEFAULT_POLLMASK;
 					if (f_op->poll) {
-						wait_key_set(wait, in, out,
-							     bit, busy_flag);
+						wait_key_set(wait, in, out, bit);
 						mask = (*f_op->poll)(f.file, wait);
 					}
 					fdput(f);
