@@ -25,5 +25,12 @@ rm -rf net/wireguard
 mkdir -p net/wireguard
 curl -A "$USER_AGENT" -LsS --connect-timeout 30 "https://git.zx2c4.com/wireguard-linux-compat/snapshot/wireguard-linux-compat-$VERSION.tar.xz" | tar -C "net/wireguard" -xJf - --strip-components=2 "wireguard-linux-compat-$VERSION/src"
 sed -i 's/tristate/bool/;s/default m/default y/;' net/wireguard/Kconfig
-echo '#ifndef fallthrough\n#define fallthrough __attribute__((__fallthrough__))\n#endif' >> net/wireguard/compat/compat.h
+
+cat << 'EOF' >> net/wireguard/compat/compat.h
+
+#ifndef fallthrough
+#define fallthrough __attribute__((__fallthrough__))
+#endif
+EOF
+
 touch net/wireguard/.check
