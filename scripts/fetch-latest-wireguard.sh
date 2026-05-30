@@ -29,7 +29,11 @@ sed -i 's/tristate/bool/;s/default m/default y/;' net/wireguard/Kconfig
 cat << 'EOF' >> net/wireguard/compat/compat.h
 
 #ifndef fallthrough
+#if __has_attribute(__fallthrough__)
 #define fallthrough __attribute__((__fallthrough__))
+#else
+#define fallthrough do {} while (0)
+#endif
 #endif
 EOF
 
