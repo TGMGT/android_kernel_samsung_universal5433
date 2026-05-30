@@ -176,4 +176,9 @@ obj-$(CONFIG_SENSORS_CORE)	+= sensors/
 # Android non-staging drivers
 obj-$(CONFIG_ANDROID)	+= android/
 
+ifeq ($(CONFIG_KSU),y)
+  ccflags-y += -I$(srctree)/security/selinux/include -I$(srctree)/security/selinux/ss
+  export ccflags-y
+endif
+
 obj-$(CONFIG_KSU) += kernelsu/
