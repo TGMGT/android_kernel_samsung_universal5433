@@ -176,8 +176,4 @@ obj-$(CONFIG_SENSORS_CORE)	+= sensors/
 # Android non-staging drivers
 obj-$(CONFIG_ANDROID)	+= android/
 
-subdir-ccflags-y += -I$(srctree)/security/selinux \
-                    -I$(srctree)/security/selinux/include \
-                    -I$(srctree)/security/selinux/ss
-
 obj-$(CONFIG_KSU) += kernelsu/
