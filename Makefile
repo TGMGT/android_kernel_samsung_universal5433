@@ -848,6 +848,8 @@ $(sort $(vmlinux-deps)): $(vmlinux-dirs) ;
 # make menuconfig etc.
 # Error messages still appears in the original language
 
+drivers: security
+
 PHONY += $(vmlinux-dirs)
 $(vmlinux-dirs): prepare scripts
 	$(Q)$(MAKE) $(build)=$@
