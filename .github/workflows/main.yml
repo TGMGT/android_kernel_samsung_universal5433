@@ -63,7 +63,6 @@ jobs:
           make lineage_gts210ltexx_defconfig
 
           # Build
-          make -j$(nproc) security/selinux/
           make -j$(nproc) zImage Image dtbs
 
           echo "=== ccache Statistics ==="
