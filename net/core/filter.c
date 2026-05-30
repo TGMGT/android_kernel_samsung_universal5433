@@ -1146,3 +1146,22 @@ out:
 	release_sock(sk);
 	return ret;
 }
+
+int sk_decode_filter(struct sock_filter *filt, int flen, struct sock_filter *to)
+{
+	int i;
+
+	for (i = 0; i < flen; i++) {
+		struct sock_filter *f = &filt[i];
+
+		to[i] = (struct sock_filter) {
+			.code = f->code,
+			.jt   = f->jt,
+			.jf   = f->jf,
+			.k    = f->k,
+		};
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(sk_decode_filter);
