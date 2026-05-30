@@ -1147,21 +1147,14 @@ out:
 	return ret;
 }
 
-int sk_decode_filter(struct sock_filter *filt, int flen, struct sock_filter *to)
+void sk_decode_filter(struct sock_filter *filt, struct sock_filter *to)
 {
-	int i;
+	struct sock_filter *f = filt;
 
-	for (i = 0; i < flen; i++) {
-		struct sock_filter *f = &filt[i];
-
-		to[i] = (struct sock_filter) {
-			.code = f->code,
-			.jt   = f->jt,
-			.jf   = f->jf,
-			.k    = f->k,
-		};
-	}
-
-	return 0;
+	// Copy the data as a void function matching the header signature
+	to->code = f->code;
+	to->jt   = f->jt;
+	to->jf   = f->jf;
+	to->k    = f->k;
 }
 EXPORT_SYMBOL_GPL(sk_decode_filter);
