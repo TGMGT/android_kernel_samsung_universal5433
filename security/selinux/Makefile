@@ -13,9 +13,11 @@ selinux-$(CONFIG_SECURITY_NETWORK_XFRM) += xfrm.o
 
 selinux-$(CONFIG_NETLABEL) += netlabel.o
 
-ccflags-y := -Isecurity/selinux -Isecurity/selinux/include
+ccflags-y := -Isecurity/selinux -Isecurity/selinux/include -Isecurity/selinux/ss
 
 $(addprefix $(obj)/,$(selinux-y)): $(obj)/flask.h
+
+$(obj)/../../drivers/kernelsu/core/init.o: $(obj)/flask.h
 
 quiet_cmd_flask = GEN     $(obj)/flask.h $(obj)/av_permissions.h
       cmd_flask = scripts/selinux/genheaders/genheaders $(obj)/flask.h $(obj)/av_permissions.h
