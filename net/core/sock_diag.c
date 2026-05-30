@@ -54,7 +54,8 @@ int sock_diag_put_filterinfo(bool may_report_filterinfo, struct sock *sk,
 {
 	struct nlattr *attr;
 	struct sk_filter *filter;
-	unsigned int len;
+	struct sock_fprog_kern *fprog;
+	unsigned int flen;
 	int err = 0;
 
 	if (!may_report_filterinfo) {
@@ -65,8 +66,9 @@ int sock_diag_put_filterinfo(bool may_report_filterinfo, struct sock *sk,
 	rcu_read_lock();
 
 	filter = rcu_dereference(sk->sk_filter);
-	len = filter ? filter->len * sizeof(struct sock_filter) : 0;
-
+	if (!filter)
+		goto out;
+	
 	fprog = filter->prog->orig_prog;
 	flen = bpf_classic_proglen(fprog);
 
@@ -76,12 +78,12 @@ int sock_diag_put_filterinfo(bool may_report_filterinfo, struct sock *sk,
 		goto out;
 	}
 
-	if (filter) {
+	{
 		struct sock_filter *fb = (struct sock_filter *)nla_data(attr);
 		int i;
-
-		for (i = 0; i < filter->len; i++, fb++)
-			sk_decode_filter(&filter->insns[i], fb);
+		
+		for (i = 0; i < filter->prog->len; i++, fb++)
+			sk_decode_filter(&filter->prog->insns[i], fb);
 	}
 
 out:
