@@ -23,7 +23,6 @@ jobs:
         run: |
           git submodule sync --recursive
           git submodule update --init --force --recursive
-          sed -i 's/#include "flask.h"/#include "..\/ss\/flask.h"/g' security/selinux/include/security.h
           git config --global --add safe.directory "$GITHUB_WORKSPACE/KernelSU"
       
       - name: Install Build Dependencies
