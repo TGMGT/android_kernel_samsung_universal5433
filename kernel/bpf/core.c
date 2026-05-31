@@ -818,43 +818,6 @@ load_byte:
 		return 0;
 }
 
-bool bpf_prog_array_compatible(struct bpf_array *array,
-			       const struct bpf_prog *fp)
-{
-	if (!array->owner_prog_type) {
-		/* There's no owner yet where we could check for
-		 * compatibility.
-		 */
-		array->owner_prog_type = fp->type;
-		array->owner_jited = fp->jited;
-
-		return true;
-	}
-
-	return array->owner_prog_type == fp->type &&
-	       array->owner_jited == fp->jited;
-}
-
-static int bpf_check_tail_call(const struct bpf_prog *fp)
-{
-	struct bpf_prog_aux *aux = fp->aux;
-	int i;
-
-	for (i = 0; i < aux->used_map_cnt; i++) {
-		struct bpf_map *map = aux->used_maps[i];
-		struct bpf_array *array;
-
-		if (map->map_type != BPF_MAP_TYPE_PROG_ARRAY)
-			continue;
-
-		array = container_of(map, struct bpf_array, map);
-		if (!bpf_prog_array_compatible(array, fp))
-			return -EINVAL;
-	}
-
-	return 0;
-}
-
 /**
  *	bpf_prog_select_runtime - select execution runtime for BPF program
  *	@fp: bpf_prog populated with internal BPF program
@@ -875,12 +838,7 @@ void bpf_prog_select_runtime(struct bpf_prog *fp)
 	fp = bpf_int_jit_compile(fp);
 	/* Lock whole bpf_prog as read-only */
 	bpf_prog_lock_ro(fp);
-
-	/* The tail call compatibility check can only be done at
-	 * this late stage as we need to determine, if we deal
-	 * with JITed or non JITed program concatenations and not
-	 * all eBPF JITs might immediately support all features.
-	 */
+	
 	*err = bpf_check_tail_call(fp);
 }
 EXPORT_SYMBOL_GPL(bpf_prog_select_runtime);
