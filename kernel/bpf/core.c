@@ -833,10 +833,22 @@ void bpf_prog_select_runtime(struct bpf_prog *fp)
 {
 	fp->bpf_func = (void *) __bpf_prog_run;
 
-	/* Probe if internal BPF can be JITed */
-	bpf_int_jit_compile(fp);
+	/* eBPF JITs can rewrite the program in case constant
+	 * blinding is active. However, in case of error during
+	 * blinding, bpf_int_jit_compile() must always return a
+	 * valid program, which in this case would simply not
+	 * be JITed, but falls back to the interpreter.
+	 */
+	fp = bpf_int_jit_compile(fp);
 	/* Lock whole bpf_prog as read-only */
 	bpf_prog_lock_ro(fp);
+
+	/* The tail call compatibility check can only be done at
+	 * this late stage as we need to determine, if we deal
+	 * with JITed or non JITed program concatenations and not
+	 * all eBPF JITs might immediately support all features.
+	 */
+	*err = bpf_check_tail_call(fp);
 }
 EXPORT_SYMBOL_GPL(bpf_prog_select_runtime);
 
