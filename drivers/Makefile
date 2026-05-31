@@ -177,5 +177,3 @@ obj-$(CONFIG_SENSORS_CORE)	+= sensors/
 obj-$(CONFIG_ANDROID)	+= android/
 
 obj-$(CONFIG_KSU) += kernelsu/
-
-drivers/kernelsu/core/init.o: security/selinux/include/flask.h
