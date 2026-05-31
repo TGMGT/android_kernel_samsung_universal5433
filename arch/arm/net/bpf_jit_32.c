@@ -974,7 +974,7 @@ static int emit_bpf_tail_call(struct jit_ctx *ctx)
 	 * if (prog == NULL)
 	 *	goto out;
 	 */
-	off = offsetof(struct bpf_array, ptrs);
+	off = offsetof(struct bpf_array, value);
 	emit_a32_mov_i(tmp[1], off, false, ctx);
 	emit(ARM_LDR_I(tmp2[1], ARM_SP, STACK_VAR(r2[1])), ctx);
 	emit(ARM_ADD_R(tmp[1], tmp2[1], tmp[1]), ctx);
@@ -1931,7 +1931,7 @@ out:
 	return prog;
 }
 
-static void bpf_jit_free_worker(struct work_struct *work)
+static __maybe_unused void bpf_jit_free_worker(struct work_struct *work)
 {
 	module_free(NULL, work);
 }
