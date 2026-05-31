@@ -838,8 +838,6 @@ void bpf_prog_select_runtime(struct bpf_prog *fp)
 	fp = bpf_int_jit_compile(fp);
 	/* Lock whole bpf_prog as read-only */
 	bpf_prog_lock_ro(fp);
-	
-	*err = bpf_check_tail_call(fp);
 }
 EXPORT_SYMBOL_GPL(bpf_prog_select_runtime);
 
