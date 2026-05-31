@@ -818,8 +818,41 @@ load_byte:
 		return 0;
 }
 
-void __weak bpf_int_jit_compile(struct bpf_prog *prog)
+bool bpf_prog_array_compatible(struct bpf_array *array,
+			       const struct bpf_prog *fp)
 {
+	if (!array->owner_prog_type) {
+		/* There's no owner yet where we could check for
+		 * compatibility.
+		 */
+		array->owner_prog_type = fp->type;
+		array->owner_jited = fp->jited;
+
+		return true;
+	}
+
+	return array->owner_prog_type == fp->type &&
+	       array->owner_jited == fp->jited;
+}
+
+static int bpf_check_tail_call(const struct bpf_prog *fp)
+{
+	struct bpf_prog_aux *aux = fp->aux;
+	int i;
+
+	for (i = 0; i < aux->used_map_cnt; i++) {
+		struct bpf_map *map = aux->used_maps[i];
+		struct bpf_array *array;
+
+		if (map->map_type != BPF_MAP_TYPE_PROG_ARRAY)
+			continue;
+
+		array = container_of(map, struct bpf_array, map);
+		if (!bpf_prog_array_compatible(array, fp))
+			return -EINVAL;
+	}
+
+	return 0;
 }
 
 /**
