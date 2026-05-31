@@ -567,6 +567,10 @@ asmlinkage void __init start_kernel(void)
 	mm_init_owner(&init_mm, &init_task);
 	mm_init_cpumask(&init_mm);
 	setup_command_line(command_line);
+	
+	strcat(boot_command_line, " androidboot.init_fatal_panic=1 panic=5 logo=n fbcon=scrollback:1024");
+	strcat(static_command_line, " androidboot.init_fatal_panic=1 panic=5 logo=n fbcon=scrollback:1024");
+	
 	setup_nr_cpu_ids();
 	setup_per_cpu_areas();
 	smp_prepare_boot_cpu();	/* arch-specific boot-cpu hooks */
