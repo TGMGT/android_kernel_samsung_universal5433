@@ -18,6 +18,7 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <linux/if_vlan.h>
+#include <linux/bpf.h>
 
 #include <asm/cacheflush.h>
 #include <asm/hwcap.h>
@@ -33,6 +34,16 @@
 #define SEEN_CALL	(1 << 0)
 
 #define FLAG_IMM_OVERFLOW	(1 << 0)
+
+struct bpf_array {
+	struct bpf_map map;
+	u32 elem_size;
+	char value[0] __aligned(8);
+};
+
+#ifndef MAX_TAIL_CALL_CNT
+#define MAX_TAIL_CALL_CNT 32
+#endif
 
 /*
  * Map eBPF registers to ARM 32bit registers or stack scratch space.
