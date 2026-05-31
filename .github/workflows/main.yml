@@ -63,7 +63,7 @@ jobs:
           make lineage_gts210ltexx_defconfig
 
           # Build
-          make zImage Image dtbs
+          make -j$(nproc) zImage Image dtbs
 
           echo "=== ccache Statistics ==="
           ccache -s
