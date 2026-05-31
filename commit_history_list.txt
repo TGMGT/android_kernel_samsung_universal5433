@@ -1,0 +1,719 @@
+Commit: 451b9dfe1e4d
+Author: Alexei Starovoitov
+Subject: bpf: allow bpf programs to tail-call other bpf programs
+Files:
+include/linux/bpf.h
+include/linux/filter.h
+include/uapi/linux/bpf.h
+kernel/bpf/arraymap.c
+kernel/bpf/core.c
+kernel/bpf/syscall.c
+kernel/bpf/verifier.c
+kernel/trace/bpf_trace.c
+net/core/filter.c
+
+Commit: 87688a165fac
+Author: Nicolas Schichan
+Subject: ARM: net: delegate filter to kernel interpreter when imm_offset() return value can't fit into 12bits.
+Files:
+arch/arm/net/bpf_jit_32.c
+
+Commit: 8decf5b7c8a9
+Author: Nicolas Schichan
+Subject: ARM: net fix emit_udiv() for BPF_ALU | BPF_DIV | BPF_K intruction.
+Files:
+arch/arm/net/bpf_jit_32.c
+
+Commit: c4594c9ff977
+Author: Daniel Borkmann
+Subject: seccomp, filter: add and use bpf_prog_create_from_user from seccomp
+Files:
+include/linux/filter.h
+kernel/seccomp.c
+net/core/filter.c
+
+Commit: d4787f1d57d2
+Author: Nicolas Schichan
+Subject: seccomp: simplify seccomp_prepare_filter and reuse bpf_prepare_filter
+Files:
+include/linux/filter.h
+kernel/seccomp.c
+net/core/filter.c
+
+Commit: 0ff73490fcc8
+Author: Daniel Borkmann
+Subject: net: filter: add __GFP_NOWARN flag for larger kmem allocs
+Files:
+net/core/filter.c
+
+Commit: 038466d02c87
+Author: Mike Snitzer
+Subject: math64: New separate div64_u64_rem helper
+Files:
+include/linux/math64.h
+lib/div64.c
+
+Commit: 9bb9184dda8c
+Author: Nicolas Schichan
+Subject: net: filter: add a callback to allow classic post-verifier transformations
+Files:
+include/linux/filter.h
+net/core/filter.c
+
+Commit: 96b152d983e6
+Author: Alexei Starovoitov
+Subject: bpf: fix 64-bit divide
+Files:
+kernel/bpf/core.c
+
+Commit: 9bfa6ff0a7b2
+Author: Alexei Starovoitov
+Subject: bpf: fix two bugs in verification logic when accessing 'ctx' pointer
+Files:
+kernel/bpf/verifier.c
+
+Commit: f11225438ba5
+Author: Alexei Starovoitov
+Subject: bpf: fix bpf helpers to use skb->mac_header relative offsets
+Files:
+include/uapi/linux/bpf.h
+include/uapi/linux/filter.h
+net/core/filter.c
+net/sched/act_bpf.c
+net/sched/cls_bpf.c
+
+Commit: d392f0370d19
+Author: Alexei Starovoitov
+Subject: bpf: fix verifier memory corruption
+Files:
+kernel/bpf/verifier.c
+
+Commit: 7abf4e2e6e30
+Author: Alexei Starovoitov
+Subject: tc: bpf: add checksum helpers
+Files:
+include/uapi/linux/bpf.h
+net/core/filter.c
+
+Commit: ee7f6b870ea4
+Author: Daniel Borkmann
+Subject: ebpf: add skb->priority to offset map for usage in {cls, act}_bpf
+Files:
+include/uapi/linux/bpf.h
+net/core/filter.c
+
+Commit: 57dd3d72742d
+Author: Ingo Molnar
+Subject: bpf: Fix the build on BPF_SYSCALL=y && !CONFIG_TRACING kernels, make it more configurable
+Files:
+init/Kconfig
+kernel/trace/Kconfig
+kernel/trace/Makefile
+
+Commit: 08cc2e0ac84e
+Author: Alexei Starovoitov
+Subject: tracing: Allow BPF programs to call bpf_trace_printk()
+Files:
+include/uapi/linux/bpf.h
+kernel/trace/bpf_trace.c
+
+Commit: d3864aba09ec
+Author: Alexei Starovoitov
+Subject: tracing: Allow BPF programs to call bpf_ktime_get_ns()
+Files:
+include/uapi/linux/bpf.h
+kernel/trace/bpf_trace.c
+
+Commit: e6b82c56b37f
+Author: Alexei Starovoitov
+Subject: tracing, perf: Implement BPF programs attached to kprobes
+Files:
+include/linux/ftrace_event.h
+include/uapi/linux/bpf.h
+include/uapi/linux/perf_event.h
+kernel/bpf/syscall.c
+kernel/events/core.c
+kernel/trace/Makefile
+kernel/trace/bpf_trace.c
+kernel/trace/trace_kprobe.c
+
+Commit: 14fb6e3a87c3
+Author: Alexei Starovoitov
+Subject: tracing: Add kprobe flag
+Files:
+include/linux/ftrace_event.h
+kernel/trace/trace_kprobe.c
+
+Commit: 2c65596b8a27
+Author: Alexei Starovoitov
+Subject: tc: bpf: generalize pedit action
+Files:
+include/linux/bpf.h
+include/uapi/linux/bpf.h
+kernel/bpf/verifier.c
+net/core/filter.c
+
+Commit: b5b88dcd988b
+Author: Daniel Borkmann
+Subject: act_bpf: add initial eBPF support for actions
+Files:
+include/net/tc_act/tc_bpf.h
+include/uapi/linux/tc_act/tc_bpf.h
+net/sched/act_bpf.c
+
+Commit: 321eca71a27c
+Author: Daniel Borkmann
+Subject: ebpf: add sched_act_type and map it to sk_filter's verifier ops
+Files:
+include/uapi/linux/bpf.h
+kernel/bpf/verifier.c
+net/core/filter.c
+
+Commit: c589a0236295
+Author: Daniel Borkmann
+Subject: ebpf, filter: do not convert skb->protocol to host endianess during runtime
+Files:
+net/core/filter.c
+
+Commit: d9c513a57b9c
+Author: Daniel Borkmann
+Subject: act_bpf: allow non-default TC_ACT opcodes as BPF exec outcome
+Files:
+net/sched/act_bpf.c
+
+Commit: b9c8931dcbb7
+Author: Alexei Starovoitov
+Subject: bpf: allow BPF programs access 'protocol' and 'vlan_tci' fields
+Files:
+include/uapi/linux/bpf.h
+net/core/filter.c
+
+Commit: 64f2f8a24217
+Author: Alexei Starovoitov
+Subject: bpf: allow extended BPF programs access skb fields
+Files:
+include/linux/bpf.h
+include/uapi/linux/bpf.h
+kernel/bpf/syscall.c
+kernel/bpf/verifier.c
+net/core/filter.c
+
+Commit: ee01bc610da9
+Author: Daniel Borkmann
+Subject: ebpf: add helper for obtaining current processor id
+Files:
+include/linux/bpf.h
+include/uapi/linux/bpf.h
+kernel/bpf/core.c
+kernel/bpf/helpers.c
+net/core/filter.c
+
+Commit: 8f42acc42b41
+Author: Daniel Borkmann
+Subject: ebpf: add prandom helper for packet sampling
+Files:
+include/linux/bpf.h
+include/uapi/linux/bpf.h
+kernel/bpf/core.c
+kernel/bpf/helpers.c
+net/core/filter.c
+
+Commit: e171a2141e23
+Author: Daniel Borkmann
+Subject: ebpf: move CONFIG_BPF_SYSCALL-only function declarations
+Files:
+include/linux/bpf.h
+
+Commit: e308e62d318f
+Author: Daniel Borkmann
+Subject: filter: refactor common filter attach code into __sk_attach_prog
+Files:
+net/core/filter.c
+
+Commit: 45449a371b86
+Author: Takashi Iwai
+Subject: net: ppp: Don't call bpf_prog_create() in ppp_lock
+Files:
+drivers/net/ppp/ppp_generic.c
+
+Commit: dbd35444e98b
+Author: Daniel Borkmann
+Subject: ebpf: verifier: check that call reg with ARG_ANYTHING is initialized
+Files:
+include/linux/bpf.h
+kernel/bpf/verifier.c
+
+Commit: ed5f1f06fd9f
+Author: Daniel Borkmann
+Subject: ebpf: bpf_map_*: fix linker error on avr32 and openrisc arch
+Files:
+kernel/bpf/core.c
+
+Commit: 71fc37f48982
+Author: Daniel Borkmann
+Subject: cls_bpf: do eBPF invocation under non-bh RCU lock variant for maps
+Files:
+net/sched/cls_bpf.c
+
+Commit: 334b88fcb4a7
+Author: Daniel Borkmann
+Subject: cls_bpf: add initial eBPF support for programmable classifiers
+Files:
+include/uapi/linux/pkt_cls.h
+kernel/bpf/syscall.c
+net/sched/cls_bpf.c
+
+Commit: eb768c4ec394
+Author: Daniel Borkmann
+Subject: net: cls_bpf: fix size mismatch on filter preparation
+Files:
+net/sched/cls_bpf.c
+
+Commit: df90b2bfdf61
+Author: Jiri Pirko
+Subject: tc: cls_bpf: rename bpf_len to bpf_num_ops
+Files:
+net/sched/cls_bpf.c
+
+Commit: 9aeee8b1e5cf
+Author: Jiri Pirko
+Subject: net_sched: cls_bpf: remove faulty use of list_for_each_entry_rcu
+Files:
+net/sched/cls_bpf.c
+
+Commit: 9c088cfc33e8
+Author: Jiri Pirko
+Subject: net_sched: cls_bpf: remove unnecessary iteration and use passed arg
+Files:
+net/sched/cls_bpf.c
+
+Commit: cf988cae3020
+Author: WANG Cong
+Subject: net_sched: fix suspicious RCU usage in cls_bpf_classify()
+Files:
+net/sched/cls_bpf.c
+
+Commit: 6e40ed15f61d
+Author: John Fastabend
+Subject: net: sched: rcu'ify cls_bpf
+Files:
+net/sched/cls_bpf.c
+
+Commit: b9f978bf3943
+Author: Daniel Borkmann
+Subject: ebpf: move read-only fields to bpf_prog and shrink bpf_prog_aux
+Files:
+include/linux/bpf.h
+include/linux/filter.h
+kernel/bpf/syscall.c
+kernel/bpf/verifier.c
+net/core/filter.c
+
+Commit: 371430aea893
+Author: Daniel Borkmann
+Subject: ebpf: add sched_cls_type and map it to sk_filter's verifier ops
+Files:
+include/uapi/linux/bpf.h
+kernel/bpf/verifier.c
+net/core/filter.c
+
+Commit: 20aca18dbfba
+Author: Daniel Borkmann
+Subject: ebpf: remove CONFIG_BPF_SYSCALL ifdefs in socket filter code
+Files:
+net/core/filter.c
+
+Commit: 5aa1fc205326
+Author: Daniel Borkmann
+Subject: ebpf: make internal bpf API independent of CONFIG_BPF_SYSCALL ifdefs
+Files:
+include/linux/bpf.h
+
+Commit: c8b3aa50259a
+Author: Daniel Borkmann
+Subject: ebpf: export BPF_PSEUDO_MAP_FD to uapi
+Files:
+include/linux/filter.h
+include/uapi/linux/bpf.h
+
+Commit: a3bdc6f86767
+Author: Daniel Borkmann
+Subject: ebpf: constify various function pointer structs
+Files:
+include/linux/bpf.h
+kernel/bpf/arraymap.c
+kernel/bpf/hashtab.c
+kernel/bpf/helpers.c
+net/core/filter.c
+
+Commit: a7cce12d623c
+Author: Alexei Starovoitov
+Subject: bpf: rcu lock must not be held when calling copy_to_user()
+Files:
+kernel/bpf/syscall.c
+
+Commit: 9b4c4da5baec
+Author: Daniel Borkmann
+Subject: net: act_bpf: fix size mismatch on filter preparation
+Files:
+net/sched/act_bpf.c
+
+Commit: 31fa908afd50
+Author: Jiri Pirko
+Subject: tc: add BPF based action
+Files:
+include/net/tc_act/tc_bpf.h
+include/uapi/linux/tc_act/Kbuild
+include/uapi/linux/tc_act/tc_bpf.h
+net/sched/Kconfig
+net/sched/Makefile
+net/sched/act_bpf.c
+
+Commit: 35e4d073a487
+Author: Daniel Borkmann
+Subject: net: cls_bpf: fix auto generation of per list handles
+Files:
+net/sched/cls_bpf.c
+
+Commit: cf8cfadbbf01
+Author: Alexei Starovoitov
+Subject: net: sock: fix access via invalid file descriptor
+Files:
+net/core/filter.c
+
+Commit: 6e29fde2d1f5
+Author: Alexei Starovoitov
+Subject: net: sock: allow eBPF programs to be attached to sockets
+Files:
+arch/alpha/include/uapi/asm/socket.h
+arch/avr32/include/uapi/asm/socket.h
+arch/cris/include/uapi/asm/socket.h
+arch/frv/include/uapi/asm/socket.h
+arch/ia64/include/uapi/asm/socket.h
+arch/m32r/include/uapi/asm/socket.h
+arch/mips/include/uapi/asm/socket.h
+arch/mn10300/include/uapi/asm/socket.h
+arch/parisc/include/uapi/asm/socket.h
+arch/powerpc/include/uapi/asm/socket.h
+arch/s390/include/uapi/asm/socket.h
+arch/sparc/include/uapi/asm/socket.h
+arch/xtensa/include/uapi/asm/socket.h
+include/linux/bpf.h
+include/linux/filter.h
+include/uapi/asm-generic/socket.h
+net/core/filter.c
+net/core/sock.c
+
+Commit: bcc533afec90
+Author: Alexei Starovoitov
+Subject: bpf: verifier: add checks for BPF_ABS | BPF_IND instructions
+Files:
+include/uapi/linux/bpf.h
+kernel/bpf/verifier.c
+
+Commit: 62b10279131d
+Author: Alexei Starovoitov
+Subject: bpf: fix arraymap NULL deref and missing overflow and zero size checks
+Files:
+kernel/bpf/arraymap.c
+kernel/bpf/hashtab.c
+
+Commit: c889cd9a5df0
+Author: Alexei Starovoitov
+Subject: bpf: allow eBPF programs to use maps
+Files:
+include/linux/bpf.h
+include/uapi/linux/bpf.h
+kernel/bpf/Makefile
+kernel/bpf/helpers.c
+
+Commit: 5291efac3c7b
+Author: Alexei Starovoitov
+Subject: bpf: fix BPF_MAP_LOOKUP_ELEM command return code
+Files:
+kernel/bpf/syscall.c
+
+Commit: c89dfd41f16f
+Author: Alexei Starovoitov
+Subject: bpf: add array type of eBPF maps
+Files:
+include/uapi/linux/bpf.h
+kernel/bpf/Makefile
+kernel/bpf/arraymap.c
+
+Commit: 2bb61810e2e0
+Author: Alexei Starovoitov
+Subject: bpf: add hashtable type of eBPF maps
+Files:
+include/uapi/linux/bpf.h
+kernel/bpf/Makefile
+kernel/bpf/hashtab.c
+
+Commit: d98783c77c66
+Author: Alexei Starovoitov
+Subject: bpf: add 'flags' attribute to BPF_MAP_UPDATE_ELEM command
+Files:
+include/linux/bpf.h
+include/uapi/linux/bpf.h
+kernel/bpf/syscall.c
+
+Commit: 501df708b272
+Author: Alexei Starovoitov
+Subject: bpf: reduce verifier memory consumption
+Files:
+kernel/bpf/verifier.c
+
+Commit: e3a9683a3b7b
+Author: Sasha Levin
+Subject: net: bpf: correctly handle errors in sk_attach_filter()
+Files:
+net/core/filter.c
+
+Commit: 536162de21c7
+Author: Hannes Frederic Sowa
+Subject: net: filter: constify detection of pkt_type_offset
+Files:
+include/linux/skbuff.h
+net/core/filter.c
+
+Commit: 6670b25ec737
+Author: Alexei Starovoitov
+Subject: bpf: split eBPF out of NET
+Files:
+init/Kconfig
+kernel/Makefile
+kernel/bpf/Makefile
+kernel/bpf/core.c
+net/Kconfig
+
+Commit: ba425778066a
+Author: Alexei Starovoitov
+Subject: bpf: fix bug in eBPF verifier
+Files:
+kernel/bpf/verifier.c
+
+Commit: 2274045debba
+Author: Alexei Starovoitov
+Subject: net: filter: move common defines into bpf_common.h
+Files:
+include/uapi/linux/Kbuild
+include/uapi/linux/bpf.h
+include/uapi/linux/bpf_common.h
+include/uapi/linux/filter.h
+
+Commit: 2f10f0138c9b
+Author: Li RongQing
+Subject: net: filter: fix the comments
+Files:
+net/core/filter.c
+
+Commit: d53cc4ef6b7e
+Author: Alexei Starovoitov
+Subject: net: bpf: fix bpf syscall dependence on anon_inodes
+Files:
+net/Kconfig
+
+Commit: dd750b0dde6b
+Author: Alexei Starovoitov
+Subject: bpf: add search pruning optimization to verifier
+Files:
+kernel/bpf/verifier.c
+
+Commit: bdf2938ab566
+Author: Alexei Starovoitov
+Subject: bpf: verifier (add verifier core)
+Files:
+include/linux/bpf.h
+kernel/bpf/verifier.c
+
+Commit: b29622bc2331
+Author: Alexei Starovoitov
+Subject: bpf: verifier (add branch/goto checks)
+Files:
+kernel/bpf/verifier.c
+
+Commit: 3d7eff2058f0
+Author: Alexei Starovoitov
+Subject: bpf: handle pseudo BPF_LD_IMM64 insn
+Files:
+include/linux/filter.h
+kernel/bpf/verifier.c
+
+Commit: 62377b3888ac
+Author: Alexei Starovoitov
+Subject: bpf: verifier (add ability to receive verification log)
+Files:
+include/uapi/linux/bpf.h
+kernel/bpf/syscall.c
+kernel/bpf/verifier.c
+
+Commit: bc55fe08981a
+Author: Russell King
+Subject: ARM: enable bpf syscall
+Files:
+arch/arm/include/uapi/asm/unistd.h
+arch/arm/kernel/calls.S
+
+Commit: f3bdd776f9b8
+Author: Alexei Starovoitov
+Subject: bpf: verifier (add docs)
+Files:
+include/linux/bpf.h
+kernel/bpf/Makefile
+kernel/bpf/syscall.c
+kernel/bpf/verifier.c
+
+Commit: 5311c3cbbc23
+Author: Alexei Starovoitov
+Subject: bpf: handle pseudo BPF_CALL insn
+Files:
+kernel/bpf/syscall.c
+
+Commit: cdbc86539515
+Author: Alexei Starovoitov
+Subject: bpf: expand BPF syscall with program load/unload
+Files:
+include/linux/bpf.h
+include/linux/filter.h
+include/uapi/linux/bpf.h
+kernel/bpf/core.c
+kernel/bpf/syscall.c
+
+Commit: c36e22ef4244
+Author: Alexei Starovoitov
+Subject: bpf: add lookup/update/delete/iterate methods to BPF maps
+Files:
+include/linux/bpf.h
+include/uapi/linux/bpf.h
+kernel/bpf/syscall.c
+
+Commit: 6a5db03826f2
+Author: Alexei Starovoitov
+Subject: bpf: introduce BPF syscall and maps
+Files:
+include/linux/bpf.h
+include/uapi/linux/bpf.h
+kernel/bpf/Makefile
+kernel/bpf/syscall.c
+
+Commit: 6647721e06c5
+Author: Daniel Borkmann
+Subject: net: bpf: arm: make hole-faulting more robust
+Files:
+arch/arm/net/bpf_jit_32.c
+arch/arm/net/bpf_jit_32.h
+
+Commit: 6981fbeff82b
+Author: Daniel Borkmann
+Subject: net: bpf: only build bpf_jit_binary_{alloc, free}() when jit selected
+Files:
+include/linux/filter.h
+kernel/bpf/core.c
+
+Commit: da82abf42223
+Author: Daniel Borkmann
+Subject: net: bpf: be friendly to kmemcheck
+Files:
+arch/arm/net/bpf_jit_32.c
+include/linux/filter.h
+net/core/filter.c
+
+Commit: 26cf98c2b789
+Author: Daniel Borkmann
+Subject: net: bpf: arm: address randomize and write protect JIT code
+Files:
+arch/arm/net/bpf_jit_32.c
+
+Commit: 5c63f3b28bd7
+Author: Daniel Borkmann
+Subject: net: bpf: consolidate JIT binary allocator
+Files:
+include/linux/filter.h
+kernel/bpf/core.c
+
+Commit: 12d202a27a73
+Author: Alexei Starovoitov
+Subject: net: filter: split filter.h and expose eBPF to user space
+Files:
+include/linux/filter.h
+include/uapi/linux/Kbuild
+include/uapi/linux/bpf.h
+
+Commit: 1a5a9f94b952
+Author: Alexei Starovoitov
+Subject: net: filter: add "load 64-bit immediate" eBPF instruction
+Files:
+include/linux/filter.h
+kernel/bpf/core.c
+
+Commit: df05152b8326
+Author: Daniel Borkmann
+Subject: net: bpf: make eBPF interpreter images read-only
+Files:
+arch/arm/net/bpf_jit_32.c
+include/linux/filter.h
+kernel/bpf/core.c
+kernel/seccomp.c
+net/core/filter.c
+
+Commit: 2499d31c431f
+Author: Alexei Starovoitov
+Subject: net: filter: split 'struct sk_filter' into socket and bpf parts
+Files:
+arch/arm/net/bpf_jit_32.c
+drivers/isdn/i4l/isdn_ppp.c
+drivers/net/ppp/ppp_generic.c
+include/linux/filter.h
+include/linux/isdn_ppp.h
+include/uapi/linux/netfilter/xt_bpf.h
+kernel/bpf/core.c
+kernel/seccomp.c
+net/core/filter.c
+net/core/ptp_classifier.c
+net/core/sock_diag.c
+net/netfilter/xt_bpf.c
+net/sched/cls_bpf.c
+
+Commit: 45bca70fbad8
+Author: Alexei Starovoitov
+Subject: net: filter: rename sk_convert_filter() -> bpf_convert_filter()
+Files:
+include/linux/filter.h
+kernel/bpf/core.c
+kernel/seccomp.c
+net/core/filter.c
+
+Commit: 3d7bf586a868
+Author: Alexei Starovoitov
+Subject: net: filter: rename sk_chk_filter() -> bpf_check_classic()
+Files:
+drivers/net/ppp/ppp_generic.c
+include/linux/filter.h
+kernel/bpf/core.c
+kernel/seccomp.c
+net/core/filter.c
+
+Commit: bb5ca97dbfac
+Author: Alexei Starovoitov
+Subject: net: filter: rename sk_filter_proglen -> bpf_classic_proglen
+Files:
+include/linux/filter.h
+net/core/filter.c
+net/core/sock_diag.c
+
+Commit: 0cad2631fd65
+Author: Alexei Starovoitov
+Subject: net: filter: simplify socket charging
+Files:
+include/linux/filter.h
+net/core/filter.c
+net/core/sock.c
+
+Commit: 57a2d3ea8ff5
+Author: Alexei Starovoitov
+Subject: net: filter: rename 'struct sock_filter_int' into 'struct bpf_insn'
+Files:
+include/linux/filter.h
+kernel/bpf/core.c
+kernel/seccomp.c
+net/core/filter.c
