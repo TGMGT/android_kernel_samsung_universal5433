@@ -818,6 +818,12 @@ load_byte:
 		return 0;
 }
 
+/* For classic BPF JITs that don't implement bpf_int_jit_compile(). */
+void __weak bpf_int_jit_compile(struct bpf_prog *prog)
+{
+	
+}
+
 /**
  *	bpf_prog_select_runtime - select execution runtime for BPF program
  *	@fp: bpf_prog populated with internal BPF program
@@ -829,13 +835,7 @@ void bpf_prog_select_runtime(struct bpf_prog *fp)
 {
 	fp->bpf_func = (void *) __bpf_prog_run;
 
-	/* eBPF JITs can rewrite the program in case constant
-	 * blinding is active. However, in case of error during
-	 * blinding, bpf_int_jit_compile() must always return a
-	 * valid program, which in this case would simply not
-	 * be JITed, but falls back to the interpreter.
-	 */
-	fp = bpf_int_jit_compile(fp);
+	bpf_int_jit_compile(fp);
 	/* Lock whole bpf_prog as read-only */
 	bpf_prog_lock_ro(fp);
 }
