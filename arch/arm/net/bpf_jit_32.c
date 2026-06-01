@@ -23,7 +23,6 @@
 #include <asm/cacheflush.h>
 #include <asm/hwcap.h>
 #include "../include/asm/rodata.h"
-#include <linux/set_memory.h>
 
 #include "bpf_jit_32.h"
 
