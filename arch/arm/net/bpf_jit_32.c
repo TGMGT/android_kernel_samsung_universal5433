@@ -36,16 +36,6 @@
 
 #define FLAG_IMM_OVERFLOW	(1 << 0)
 
-#ifdef set_memory_ro
-#undef set_memory_ro
-#endif
-#ifdef set_memory_rw
-#undef set_memory_rw
-#endif
-
-extern int set_memory_ro(unsigned long addr, int numpages);
-extern int set_memory_rw(unsigned long addr, int numpages);
-
 /*
  * Map eBPF registers to ARM 32bit registers or stack scratch space.
  *
