@@ -168,6 +168,9 @@ void bpf_jit_binary_free(struct bpf_binary_header *hdr)
 
 int bpf_jit_harden __read_mostly;
 
+int bpf_jit_enable __read_mostly;
+EXPORT_SYMBOL_GPL(bpf_jit_enable);
+
 static int bpf_jit_blind_insn(const struct bpf_insn *from,
 			      const struct bpf_insn *aux,
 			      struct bpf_insn *to_buff)
