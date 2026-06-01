@@ -25,6 +25,7 @@
 #include "../include/asm/rodata.h"
 #include <asm/pgtable.h>
 #include <asm/tlbflush.h>
+#include <linux/mm.h>
 
 #include "bpf_jit_32.h"
 
@@ -70,12 +71,12 @@ static int set_page_attributes(unsigned long virt, int numpages,
 	return 0;
 }
 
-int set_memory_ro(unsigned long virt, int numpages)
+static int set_memory_ro(unsigned long virt, int numpages)
 {
 	return set_page_attributes(virt, numpages, pte_wrprotect);
 }
 
-int set_memory_rw(unsigned long virt, int numpages)
+static int set_memory_rw(unsigned long virt, int numpages)
 {
 	return set_page_attributes(virt, numpages, pte_mkwrite);
 }
@@ -89,7 +90,7 @@ int set_memory_rw(unsigned long virt, int numpages)
  * arguments are mapped to scratch space on stack.
  * 3. We need two 64 bit temp registers to do complex operations on eBPF
  * registers.
- *
+ * 
  * As the eBPF registers are all 64 bit registers and arm has only 32 bit
  * registers, we have to map each eBPF registers with two arm 32 bit regs or
  * scratch memory space and we have to build eBPF 64 bit register from those.
