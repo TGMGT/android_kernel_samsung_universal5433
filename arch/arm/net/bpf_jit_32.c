@@ -23,6 +23,8 @@
 #include <asm/cacheflush.h>
 #include <asm/hwcap.h>
 #include "../include/asm/rodata.h"
+#include <asm/pgtable.h>
+#include <asm/tlbflush.h>
 
 #include "bpf_jit_32.h"
 
@@ -35,6 +37,48 @@
 #define SEEN_CALL	(1 << 0)
 
 #define FLAG_IMM_OVERFLOW	(1 << 0)
+
+static int set_page_attributes(unsigned long virt, int numpages,
+	pte_t (*f)(pte_t))
+{
+	pmd_t *pmd;
+	pte_t *pte;
+	unsigned long start = virt;
+	unsigned long end = virt + (numpages << PAGE_SHIFT);
+	unsigned long pmd_end;
+
+	while (virt < end) {
+		pmd = pmd_off_k(virt);
+		pmd_end = min(ALIGN(virt + 1, PMD_SIZE), end);
+
+		if ((pmd_val(*pmd) & PMD_TYPE_MASK) != PMD_TYPE_TABLE) {
+			pr_err("%s: pmd %p=%08x for %08lx not page table\n",
+				__func__, pmd, (unsigned int)pmd_val(*pmd), virt);
+			virt = pmd_end;
+			continue;
+		}
+
+		while (virt < pmd_end) {
+			pte = pte_offset_kernel(pmd, virt);
+			set_pte_ext(pte, f(*pte), 0);
+			virt += PAGE_SIZE;
+		}
+	}
+
+	flush_tlb_kernel_range(start, end);
+
+	return 0;
+}
+
+int set_memory_ro(unsigned long virt, int numpages)
+{
+	return set_page_attributes(virt, numpages, pte_wrprotect);
+}
+
+int set_memory_rw(unsigned long virt, int numpages)
+{
+	return set_page_attributes(virt, numpages, pte_mkwrite);
+}
 
 /*
  * Map eBPF registers to ARM 32bit registers or stack scratch space.
