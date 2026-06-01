@@ -347,6 +347,7 @@ static inline void seccomp_sync_threads(void)
  */
 static struct seccomp_filter * seccomp_prepare_filter(struct sock_fprog *fprog)
 {
+	int runtime_err;
 	struct seccomp_filter *filter;
 	unsigned long fp_size = fprog->len * sizeof(struct sock_filter);
 	unsigned long total_insns = fprog->len;
@@ -416,8 +417,12 @@ static struct seccomp_filter * seccomp_prepare_filter(struct sock_fprog *fprog)
         kfree(fp);
 	atomic_set(&filter->usage, 1);
 	filter->prog->len = new_len;
-
-	bpf_prog_select_runtime(filter->prog);
+	
+    filter->prog = bpf_prog_select_runtime(filter->prog, &runtime_err);
+    if (runtime_err) {
+        ret = runtime_err;
+        goto free_filter_prog;
+    }
 
 	return filter;
 
