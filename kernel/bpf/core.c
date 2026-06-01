@@ -853,12 +853,6 @@ load_byte:
 		return 0;
 }
 
-/* For classic BPF JITs that don't implement bpf_int_jit_compile(). */
-void __weak bpf_int_jit_compile(struct bpf_prog *prog)
-{
-	
-}
-
 bool bpf_prog_array_compatible(struct bpf_array *array, const struct bpf_prog *fp)
 {
 	if (array->owner_prog_type) {
