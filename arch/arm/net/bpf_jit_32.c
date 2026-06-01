@@ -22,6 +22,7 @@
 
 #include <asm/cacheflush.h>
 #include <asm/hwcap.h>
+#include "../include/asm/rodata.h"
 
 #include "bpf_jit_32.h"
 
@@ -34,9 +35,6 @@
 #define SEEN_CALL	(1 << 0)
 
 #define FLAG_IMM_OVERFLOW	(1 << 0)
-
-extern int set_memory_ro(unsigned long addr, int numpages);
-extern int set_memory_rw(unsigned long addr, int numpages);
 
 /*
  * Map eBPF registers to ARM 32bit registers or stack scratch space.
