@@ -913,7 +913,7 @@ struct bpf_prog *bpf_prog_select_runtime(struct bpf_prog *fp, int *err)
 	 * with JITed or non JITed program concatenations and not
 	 * all eBPF JITs might immediately support all features.
 	 */
-	*err = bpf_check_tail_call(fp);
+	*err = check_tail_call(fp);
 
 	return fp;
 }
@@ -942,6 +942,12 @@ struct bpf_prog * __weak bpf_int_jit_compile(struct bpf_prog *prog)
 {
 	return prog;
 }
+
+int bpf_check_tail_call(const struct bpf_prog *fp)
+{
+    return check_tail_call(fp);
+}
+EXPORT_SYMBOL_GPL(bpf_check_tail_call);
 
 /* To execute LD_ABS/LD_IND instructions __bpf_prog_run() may call
  * skb_copy_bits(), so provide a weak definition of it for NET-less config.
