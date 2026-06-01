@@ -383,8 +383,13 @@ static int ptrace_attach(struct task_struct *task, long request,
 	if (seize)
 		flags |= PT_SEIZED;
 	rcu_read_lock();
-	if (ns_capable(__task_cred(task)->user_ns, CAP_SYS_PTRACE))
-		flags |= PT_PTRACE_CAP;
+	
+	if (ns_capable(__task_cred(task)->user_ns, CAP_SYS_PTRACE)) {
+		rcu_read_lock();
+		child->ptracer_cred = get_cred(__task_cred(current));
+		rcu_read_unlock();
+    }
+
 	rcu_read_unlock();
 	task->ptrace = flags;
 
