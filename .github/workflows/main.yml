@@ -33,7 +33,7 @@ jobs:
 
       - name: Setup Toolchain
         run: |
-          git clone --depth=1 https://github.com/YumeMichi/linaro-arm-eabi-4.9 toolchain
+          git clone --depth=1 https://github.com/arter97/arm-linux-androideabi-4.9 toolchain
           sudo cp -r toolchain/* /usr/local/
           sudo ldconfig
 
