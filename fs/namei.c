@@ -2319,7 +2319,7 @@ error_check:
 		} else {
 			path->dentry = dentry;
 			path->mnt = mntget(nd->path.mnt);
-			if (should_follow_link(dentry->d_inode,
+			if (should_follow_link(dentry,
 						nd->flags & LOOKUP_FOLLOW))
 				return 1;
 			follow_mount(path);
@@ -3756,7 +3756,7 @@ int vfs_unlink2(struct vfsmount *mnt, struct inode *dir, struct dentry *dentry, 
 	else {
 		error = security_inode_unlink(dir, dentry);
 		if (!error) {
-			error = try_break_deleg(target, delegated_inode);
+			error = try_break_deleg(dentry->d_inode, delegated_inode);
 			if (error)
 				goto out;
 			error = dir->i_op->unlink(dir, dentry);
