@@ -386,7 +386,7 @@ static int ptrace_attach(struct task_struct *task, long request,
 	
 	if (ns_capable(__task_cred(task)->user_ns, CAP_SYS_PTRACE)) {
 		rcu_read_lock();
-		child->ptracer_cred = get_cred(__task_cred(current));
+		task->ptracer_cred = get_cred(__task_cred(current));
 		rcu_read_unlock();
     }
 
