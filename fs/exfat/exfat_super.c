@@ -469,23 +469,13 @@ static unsigned int exfat_striptail_len(const struct qstr *qstr)
 	return __exfat_striptail_len(qstr->len, qstr->name);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,00)
 static int exfat_d_hash(const struct dentry *dentry, struct qstr *qstr)
-#else
-static int exfat_d_hash(const struct dentry *dentry, const struct inode *inode,
-		struct qstr *qstr)
-#endif
 {
 	qstr->hash = full_name_hash(qstr->name, exfat_striptail_len(qstr));
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,00)
 static int exfat_d_hashi(const struct dentry *dentry, struct qstr *qstr)
-#else
-static int exfat_d_hashi(const struct dentry *dentry, const struct inode *inode,
-		struct qstr *qstr)
-#endif
 {
 	struct nls_table *t = EXFAT_SB(dentry->d_sb)->nls_io;
 	const unsigned char *name;
@@ -495,7 +485,8 @@ static int exfat_d_hashi(const struct dentry *dentry, const struct inode *inode,
 	name = qstr->name;
 	len = exfat_striptail_len(qstr);
 
-	hash = init_name_hash();
+	/* Pass dentry to match modern core block definitions */
+	hash = init_name_hash(dentry);
 	while (len--)
 		hash = partial_name_hash(nls_tolower(t, *name++), hash);
 	qstr->hash = end_name_hash(hash);
@@ -503,14 +494,8 @@ static int exfat_d_hashi(const struct dentry *dentry, const struct inode *inode,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,00)
-static int exfat_cmpi(const struct dentry *parent, const struct dentry *dentry,
-		unsigned int len, const char *str, const struct qstr *name)
-#else
-static int exfat_cmpi(const struct dentry *parent, const struct inode *pinode,
-		const struct dentry *dentry, const struct inode *inode,
-		unsigned int len, const char *str, const struct qstr *name)
-#endif
+static int exfat_cmpi(const struct dentry *parent, unsigned int len, 
+		      const char *str, const struct qstr *name)
 {
 	struct nls_table *t = EXFAT_SB(parent->d_sb)->nls_io;
 	unsigned int alen, blen;
@@ -524,14 +509,8 @@ static int exfat_cmpi(const struct dentry *parent, const struct inode *pinode,
 	return 1;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,00)
-static int exfat_cmp(const struct dentry *parent, const struct dentry *dentry,
-		unsigned int len, const char *str, const struct qstr *name)
-#else
-static int exfat_cmp(const struct dentry *parent, const struct inode *pinode,
-		const struct dentry *dentry, const struct inode *inode,
-		unsigned int len, const char *str, const struct qstr *name)
-#endif
+static int exfat_cmp(const struct dentry *parent, unsigned int len, 
+		     const char *str, const struct qstr *name)
 {
 	unsigned int alen, blen;
 
