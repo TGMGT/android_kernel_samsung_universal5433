@@ -484,9 +484,8 @@ static int exfat_d_hashi(const struct dentry *dentry, struct qstr *qstr)
 
 	name = qstr->name;
 	len = exfat_striptail_len(qstr);
-
-	/* Pass dentry to match modern core block definitions */
-	hash = init_name_hash(dentry);
+	
+	hash = init_name_hash();
 	while (len--)
 		hash = partial_name_hash(nls_tolower(t, *name++), hash);
 	qstr->hash = end_name_hash(hash);
