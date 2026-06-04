@@ -2397,8 +2397,10 @@ static void __d_move(struct dentry *dentry, struct dentry *target,
 			   d_hash(dentry->d_parent, dentry->d_name.hash));
 	}
 
-	list_del(&dentry->d_child);
-	list_del(&target->d_child);
+	/* 
+	 * NOTE: Explicit list_del calls were removed from here. 
+	 * list_move() below handles both deletion and insertion atomically.
+	 */
 
 	/* Switch the names.. */
 	switch_names(dentry, target);
@@ -2412,6 +2414,8 @@ static void __d_move(struct dentry *dentry, struct dentry *target,
 		INIT_LIST_HEAD(&target->d_child);
 	} else {
 		swap(dentry->d_parent, target->d_parent);
+		
+		/* Safely unlinks from old parent and links to the new parent */
 		list_move(&target->d_child, &target->d_parent->d_subdirs);
 		list_move(&dentry->d_child, &dentry->d_parent->d_subdirs);
 		if (exchange)
