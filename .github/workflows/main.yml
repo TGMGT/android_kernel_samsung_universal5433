@@ -50,15 +50,6 @@ jobs:
         run: |
           export ARCH=arm
           export CROSS_COMPILE="arm-eabi-"
-          export CC="ccache arm-eabi-gcc"
-          export HOSTCC="ccache gcc"
-          export HOSTCXX="ccache g++"
-
-          # ccache configuration
-          ccache --set-config=base_dir=${{ github.workspace }}
-          ccache --set-config=hash_dir=false
-          ccache --set-config=compiler_check=content
-          ccache --set-config=sloppiness=file_macro,time_macros,include_file_mtime,locale,pch_defines
 
           make lineage_gts210ltexx_defconfig
 
