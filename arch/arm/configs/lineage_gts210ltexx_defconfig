@@ -732,7 +732,7 @@ CONFIG_ARM_CPU_SUSPEND=y
 # CONFIG_BPF is not set
 CONFIG_NET=y
 # CONFIG_BPF_SYSCALL is not set
-CONFIG_DYNAMIC_FSYNC=y
+# CONFIG_DYNAMIC_FSYNC is not set
 
 #
 # Networking options
