@@ -296,7 +296,7 @@ static int proc_pid_stack(struct seq_file *m, struct pid_namespace *ns,
 	 * surface.
 	 * Therefore, this interface is restricted to root.
 	 */
-	if (!file_ns_capable(m->file, &init_user_ns, CAP_SYS_ADMIN))
+	if (!ns_capable(&init_user_ns, CAP_SYS_ADMIN))
 		return -EACCES;
 
 	entries = kmalloc(MAX_STACK_TRACE_DEPTH * sizeof(*entries), GFP_KERNEL);
