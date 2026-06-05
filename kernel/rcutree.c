@@ -36,8 +36,9 @@
 #include <linux/interrupt.h>
 #include <linux/sched.h>
 #include <linux/nmi.h>
-#include <linux/atomic.h>
+#include <asm/barrier.h>
 #include <linux/bitops.h>
+#include <linux/atomic.h>
 #include <linux/export.h>
 #include <linux/completion.h>
 #include <linux/moduleparam.h>
