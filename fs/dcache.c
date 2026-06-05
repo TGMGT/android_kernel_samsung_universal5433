@@ -2585,7 +2585,7 @@ struct dentry *d_splice_alias(struct inode *inode, struct dentry *dentry)
 				return ERR_PTR(-EIO);
 			}
 			write_seqlock(&rename_lock);
-			__d_move(new, dentry);
+			__d_move(new, dentry, false);
 			write_sequnlock(&rename_lock);
 			spin_unlock(&inode->i_lock);
 			security_d_instantiate(new, inode);
