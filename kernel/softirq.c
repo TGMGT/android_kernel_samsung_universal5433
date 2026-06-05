@@ -24,7 +24,7 @@
 #include <linux/smpboot.h>
 #include <linux/tick.h>
 #include <asm/barrier.h>
-#include <linux/atmoic.h>
+#include <linux/atomic.h>
 
 #include <mach/exynos-ss.h>
 #define CREATE_TRACE_POINTS
