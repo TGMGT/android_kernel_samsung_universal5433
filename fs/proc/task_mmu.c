@@ -1631,10 +1631,10 @@ static int pid_filemap_list_open(struct inode *inode, struct file *file)
 	if (!try_to_get_filemap_fd())
 		return -EINVAL;
 
-	priv->maps_private.lock_ctx.inode = inode;
-	priv->maps_private.lock_ctx.mm = proc_mem_open(inode, PTRACE_MODE_READ);
+	priv->maps_private.inode = inode;
+	priv->maps_private.mm = proc_mem_open(inode, PTRACE_MODE_READ);
 	priv->show_list = true;
-	if (IS_ERR(priv->maps_private.lock_ctx.mm)) {
+	if (IS_ERR(priv->maps_private.mm)) {
 		int err = PTR_ERR(priv->maps_private.lock_ctx.mm);
 
 		put_filemap_fd();
@@ -1651,8 +1651,8 @@ static int proc_filemap_release(struct inode *inode, struct file *file)
 	struct seq_file *seq = file->private_data;
 	struct proc_filemap_private *priv = seq->private;
 
-	if (priv->maps_private.lock_ctx.mm)
-		mmdrop(priv->maps_private.lock_ctx.mm);
+	if (priv->maps_private.mm)
+		mmdrop(priv->maps_private.mm);
 
 	put_filemap_fd();
 	return seq_release_private(inode, file);
