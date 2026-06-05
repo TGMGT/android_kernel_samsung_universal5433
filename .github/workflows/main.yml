@@ -54,7 +54,7 @@ jobs:
           make lineage_gts210ltexx_defconfig
 
           # Build
-          make -j$(nproc) KCFLAGS="-Os -march=armv7-a+mp+sec+evt -mtune=cortex-a57.cortex-a53 --param max-inline-insns-single=5 -fno-inline-functions-called-once" LDFLAGS_vmlinux="--gc-sections --march=armv7-a" zImage Image dtbs
+          make -j$(nproc -all) KCFLAGS="-Os -march=armv7ve -mtune=cortex-a57.cortex-a53 --param max-inline-insns-single=5 -fno-inline-functions-called-once" LDFLAGS_vmlinux="--gc-sections" zImage Image dtbs
 
           echo "=== ccache Statistics ==="
           ccache -s
