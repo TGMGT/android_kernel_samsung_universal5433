@@ -493,33 +493,33 @@ static int exfat_d_hashi(const struct dentry *dentry, struct qstr *qstr)
 	return 0;
 }
 
-static int exfat_cmpi(const struct dentry *parent, unsigned int len, 
-		      const char *str, const struct qstr *name)
+static int exfat_cmpi(const struct dentry *parent, const struct dentry *dentry,
+        unsigned int len, const char *str, const struct qstr *name)
 {
-	struct nls_table *t = EXFAT_SB(parent->d_sb)->nls_io;
-	unsigned int alen, blen;
+    struct nls_table *t = EXFAT_SB(parent->d_sb)->nls_io;
+    unsigned int alen, blen;
 
-	alen = exfat_striptail_len(name);
-	blen = __exfat_striptail_len(len, str);
-	if (alen == blen) {
-		if (nls_strnicmp(t, name->name, str, alen) == 0)
-			return 0;
-	}
-	return 1;
+    alen = exfat_striptail_len(name);
+    blen = __exfat_striptail_len(len, str);
+    if (alen == blen) {
+        if (nls_strnicmp(t, name->name, str, alen) == 0)
+            return 0;
+    }
+    return 1;
 }
 
-static int exfat_cmp(const struct dentry *parent, unsigned int len, 
-		     const char *str, const struct qstr *name)
+static int exfat_cmp(const struct dentry *parent, const struct dentry *dentry,
+        unsigned int len, const char *str, const struct qstr *name)
 {
-	unsigned int alen, blen;
+    unsigned int alen, blen;
 
-	alen = exfat_striptail_len(name);
-	blen = __exfat_striptail_len(len, str);
-	if (alen == blen) {
-		if (strncmp(name->name, str, alen) == 0)
-			return 0;
-	}
-	return 1;
+    alen = exfat_striptail_len(name);
+    blen = __exfat_striptail_len(len, str);
+    if (alen == blen) {
+        if (strncmp(name->name, str, alen) == 0)
+            return 0;
+    }
+    return 1;
 }
 
 static const struct dentry_operations exfat_ci_dentry_ops = {
