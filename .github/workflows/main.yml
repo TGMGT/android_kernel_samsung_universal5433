@@ -54,7 +54,7 @@ jobs:
           make lineage_gts210ltexx_defconfig
 
           # Build
-          make -j$(nproc) zImage Image dtbs
+          make -j$(nproc) LDFLAGS_vmlinux="-O2 --hash-size=31991 --reduce-memory-overheads" zImage Image dtbs
 
           echo "=== ccache Statistics ==="
           ccache -s
