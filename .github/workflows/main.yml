@@ -49,12 +49,12 @@ jobs:
       - name: Build Kernel
         run: |
           export ARCH=arm
-          export CROSS_COMPILE="arm-eabi-"
+          export CROSS_COMPILE="arm-linux-androideabi-"
 
           make lineage_gts210ltexx_defconfig
 
           # Build
-          make -j$(nproc) LDFLAGS_vmlinux="-O2 --hash-size=31991 --reduce-memory-overheads" zImage Image dtbs
+          make -j$(nproc) KCFLAGS="-Os --param max-inline-insns-single=5 -fno-inline-functions-called-once" LDFLAGS_vmlinux="--gc-sections --icf=all" zImage Image dtbs
 
           echo "=== ccache Statistics ==="
           ccache -s
