@@ -505,27 +505,37 @@ EXPORT_SYMBOL(d_drop);
 static inline struct dentry *dentry_kill(struct dentry *dentry, int ref)
 	__releases(dentry->d_lock)
 {
-	struct inode *inode = dentry->d_inode;
+	struct inode *inode;
 	struct dentry *parent;
 
-	if (inode)
-		spin_lock(&inode->i_lock);
-
+	inode = dentry->d_inode;
+	if (inode && !spin_trylock(&inode->i_lock)) {
+relock:
+		spin_unlock(&dentry->d_lock);
+		cpu_relax();
+		return dentry; /* try again with same dentry */
+	}
 	if (IS_ROOT(dentry))
 		parent = NULL;
 	else
 		parent = dentry->d_parent;
-
-	if (parent)
-		spin_lock(&parent->d_lock);
+	if (parent && !spin_trylock(&parent->d_lock)) {
+		if (inode)
+			spin_unlock(&inode->i_lock);
+		goto relock;
+	}
 
 	if (ref)
 		dentry->d_count--;
-
+	/*
+	 * inform the fs via d_prune that this dentry is about to be
+	 * unhashed and destroyed.
+	 */
 	if (dentry->d_flags & DCACHE_OP_PRUNE)
 		dentry->d_op->d_prune(dentry);
 
 	dentry_lru_del(dentry);
+	/* if it was on the hash then remove it */
 	__d_drop(dentry);
 	return d_kill(dentry, parent);
 }
