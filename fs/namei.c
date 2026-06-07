@@ -4256,15 +4256,32 @@ int vfs_rename2(struct vfsmount *mnt,
 	take_dentry_name_snapshot(&old_name, old_dentry);
 	dget(new_dentry);
 	/*
-	 * Lock all moved children. Moved directories may need to change parent
-	 * pointer so they need the lock to prevent against concurrent
-	 * directory changes moving parent pointer. For regular files we've
-	 * historically always done this. The lockdep locking subclasses are
-	 * somewhat arbitrary but RENAME_EXCHANGE in particular can swap
-	 * regular files and directories so it's difficult to tell which
-	 * subclasses to use.
+	 * THE DEFINITIVE FIX: Avoid lock-inversion loops when KernelSU / OverlayFS
+	 * attempts to swap or exchange mixed directories and files.
+	 * We completely avoid pointer sorting if there is a mixed directory type mismatch.
 	 */
-	lock_two_inodes(source, target, I_MUTEX_NORMAL, I_MUTEX_NONDIR2);
+	if (target) {
+		if (is_dir && new_is_dir) {
+			/* Both are directories: Lock source first, then lock target as a child */
+			inode_lock(source);
+			mutex_lock_nested(&target->i_mutex, I_MUTEX_CHILD);
+		} else if (is_dir && !new_is_dir) {
+			/* Source is a directory, target is a file: Directory must be locked first */
+			inode_lock(source);
+			mutex_lock_nested(&target->i_mutex, I_MUTEX_NONDIR2);
+		} else if (!is_dir && new_is_dir) {
+			/* Source is a file, target is a directory: Directory must be locked first */
+			inode_lock(target);
+			mutex_lock_nested(&source->i_mutex, I_MUTEX_NONDIR2);
+		} else {
+			/* Both are plain files: Safely hand lock resolution */
+			lock_two_nondirectories(source, target);
+		}
+	} else {
+		/* No target exists (creating a new entry): safely lock the source only */
+		if (source)
+			inode_lock(source);
+	}
 
 	error = -EPERM;
 	if (IS_SWAPFILE(source) || (target && IS_SWAPFILE(target)))
