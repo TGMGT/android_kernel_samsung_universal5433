@@ -2532,47 +2532,89 @@ static inline int may_create(struct vfsmount *mnt, struct inode *dir, struct den
 	return inode_permission2(mnt, dir, MAY_WRITE | MAY_EXEC);
 }
 
+static struct dentry *lock_two_directories(struct dentry *p1, struct dentry *p2)
+{
+	struct dentry *p;
+
+	p = d_ancestor(p2, p1);
+	if (p) {
+		inode_lock_nested(p2->d_inode, I_MUTEX_PARENT);
+		inode_lock_nested(p1->d_inode, I_MUTEX_PARENT2);
+		return p;
+	}
+
+	p = d_ancestor(p1, p2);
+	inode_lock_nested(p1->d_inode, I_MUTEX_PARENT);
+	inode_lock_nested(p2->d_inode, I_MUTEX_PARENT2);
+	return p;
+}
+
 /*
  * p1 and p2 should be directories on the same fs.
  */
 struct dentry *lock_rename(struct dentry *p1, struct dentry *p2)
 {
-	struct dentry *p;
-
 	if (p1 == p2) {
-		mutex_lock_nested(&p1->d_inode->i_mutex, I_MUTEX_PARENT);
+		inode_lock_nested(p1->d_inode, I_MUTEX_PARENT);
 		return NULL;
 	}
 
-	mutex_lock(&p1->d_inode->i_sb->s_vfs_rename_mutex);
+	mutex_lock(&p1->d_sb->s_vfs_rename_mutex);
+	return lock_two_directories(p1, p2);
+}
+EXPORT_SYMBOL(lock_rename);
 
-	p = d_ancestor(p2, p1);
-	if (p) {
-		mutex_lock_nested(&p2->d_inode->i_mutex, I_MUTEX_PARENT);
-		mutex_lock_nested(&p1->d_inode->i_mutex, I_MUTEX_CHILD);
-		return p;
+/*
+ * c1 and p2 should be on the same fs.
+ */
+struct dentry *lock_rename_child(struct dentry *c1, struct dentry *p2)
+{
+	if (READ_ONCE(c1->d_parent) == p2) {
+		/*
+		 * hopefully won't need to touch ->s_vfs_rename_mutex at all.
+		 */
+		inode_lock_nested(p2->d_inode, I_MUTEX_PARENT);
+		/*
+		 * now that p2 is locked, nobody can move in or out of it,
+		 * so the test below is safe.
+		 */
+		if (likely(c1->d_parent == p2))
+			return NULL;
+
+		/*
+		 * c1 got moved out of p2 while we'd been taking locks;
+		 * unlock and fall back to slow case.
+		 */
+		inode_unlock(p2->d_inode);
 	}
 
-	p = d_ancestor(p1, p2);
-	if (p) {
-		mutex_lock_nested(&p1->d_inode->i_mutex, I_MUTEX_PARENT);
-		mutex_lock_nested(&p2->d_inode->i_mutex, I_MUTEX_CHILD);
-		return p;
-	}
+	mutex_lock(&c1->d_sb->s_vfs_rename_mutex);
+	/*
+	 * nobody can move out of any directories on this fs.
+	 */
+	if (likely(c1->d_parent != p2))
+		return lock_two_directories(c1->d_parent, p2);
 
-	mutex_lock_nested(&p1->d_inode->i_mutex, I_MUTEX_PARENT);
-	mutex_lock_nested(&p2->d_inode->i_mutex, I_MUTEX_PARENT2);
+	/*
+	 * c1 got moved into p2 while we were taking locks;
+	 * we need p2 locked and ->s_vfs_rename_mutex unlocked,
+	 * for consistency with lock_rename().
+	 */
+	inode_lock_nested(p2->d_inode, I_MUTEX_PARENT);
+	mutex_unlock(&c1->d_sb->s_vfs_rename_mutex);
 	return NULL;
 }
+EXPORT_SYMBOL(lock_rename_child);
 
 void unlock_rename(struct dentry *p1, struct dentry *p2)
 {
-	mutex_unlock(&p1->d_inode->i_mutex);
+	inode_unlock(p1->d_inode);
 	if (p1 != p2) {
-		mutex_unlock(&p2->d_inode->i_mutex);
-		mutex_unlock(&p1->d_inode->i_sb->s_vfs_rename_mutex);
+		inode_unlock(p2->d_inode);
+		mutex_unlock(&p1->d_sb->s_vfs_rename_mutex);
 	}
 }
+EXPORT_SYMBOL(unlock_rename);
 
 int vfs_create2(struct vfsmount *mnt, struct inode *dir, struct dentry *dentry,
 		umode_t mode, bool want_excl)
@@ -4169,7 +4211,7 @@ SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname
  * Problems:
  *	a) we can get into loop creation. Check is done in is_subdir().
  *	b) race potential - two innocent renames can create a loop together.
- *	   That's where 4.4 screws up. Current fix: serialization on
+ *	   That's where 4.4BSD screws up. Current fix: serialization on
  *	   sb->s_vfs_rename_mutex. We might be more accurate, but that's another
  *	   story.
  *	c) we have to lock _four_ objects - parents and victim (if it exists),
@@ -4203,6 +4245,7 @@ int vfs_rename2(struct vfsmount *mnt,
 	bool new_is_dir = false;
 	unsigned max_links = new_dir->i_sb->s_max_links;
 	struct name_snapshot old_name;
+	bool lock_old_subdir, lock_new_subdir;
 
 	if (source == target)
 		return 0;
@@ -4256,31 +4299,31 @@ int vfs_rename2(struct vfsmount *mnt,
 	take_dentry_name_snapshot(&old_name, old_dentry);
 	dget(new_dentry);
 	/*
-	 * THE DEFINITIVE FIX: Avoid lock-inversion loops when KernelSU / OverlayFS
-	 * attempts to swap or exchange mixed directories and files.
-	 * We completely avoid pointer sorting if there is a mixed directory type mismatch.
+	 * Lock children.
+	 * The source subdirectory needs to be locked on cross-directory
+	 * rename or cross-directory exchange since its parent changes.
+	 * The target subdirectory needs to be locked on cross-directory
+	 * exchange due to parent change and on any rename due to becoming
+	 * a victim.
+	 * Non-directories need locking in all cases (for NFS reasons);
+	 * they get locked after any subdirectories (in inode address order).
+	 *
+	 * NOTE: WE ONLY LOCK UNRELATED DIRECTORIES IN CROSS-DIRECTORY CASE.
+	 * NEVER, EVER DO THAT WITHOUT ->s_vfs_rename_mutex.
 	 */
-	if (target) {
-		if (is_dir && new_is_dir) {
-			/* Both are directories: Lock source first, then lock target as a child */
-			inode_lock(source);
-			mutex_lock_nested(&target->i_mutex, I_MUTEX_CHILD);
-		} else if (is_dir && !new_is_dir) {
-			/* Source is a directory, target is a file: Directory must be locked first */
-			inode_lock(source);
-			mutex_lock_nested(&target->i_mutex, I_MUTEX_NONDIR2);
-		} else if (!is_dir && new_is_dir) {
-			/* Source is a file, target is a directory: Directory must be locked first */
+	lock_old_subdir = new_dir != old_dir;
+	lock_new_subdir = new_dir != old_dir || !(flags & RENAME_EXCHANGE);
+	if (is_dir) {
+		if (lock_old_subdir)
+			inode_lock_nested(source, I_MUTEX_CHILD);
+		if (target && (!new_is_dir || lock_new_subdir))
 			inode_lock(target);
-			mutex_lock_nested(&source->i_mutex, I_MUTEX_NONDIR2);
-		} else {
-			/* Both are plain files: Safely hand lock resolution */
-			lock_two_nondirectories(source, target);
-		}
+	} else if (new_is_dir) {
+		if (lock_new_subdir)
+			inode_lock_nested(target, I_MUTEX_CHILD);
+		inode_lock(source);
 	} else {
-		/* No target exists (creating a new entry): safely lock the source only */
-		if (source)
-			inode_lock(source);
+		lock_two_nondirectories(source, target);
 	}
 
 	error = -EPERM;
@@ -4334,10 +4377,11 @@ int vfs_rename2(struct vfsmount *mnt,
 			d_exchange(old_dentry, new_dentry);
 	}
 out:
-	if (source)
+	if (!is_dir || lock_old_subdir)
 		inode_unlock(source);
-	if (target)
+	if (target && (!new_is_dir || lock_new_subdir))
 		inode_unlock(target);
+	
 	dput(new_dentry);
 	if (!error) {
 		fsnotify_move(old_dir, new_dir, old_name.name, is_dir,
