@@ -1580,36 +1580,38 @@ static inline int walk_component(struct nameidata *nd, struct path *path,
 	if (unlikely(err)) {
 #ifdef CONFIG_KSU
 		if (unlikely(current->flags & PF_KTHREAD)
-			&& !strcmp(current->comm, "throne_tracker")) {
-			err = -ENOENT;
-			goto out_err;
+			&& current->comm && !strcmp(current->comm, "throne_tracker")) {
+			return -ENOENT; 
 		}
 #endif
 		if (err < 0)
 			return err;
-		path.dentry = lookup_slow(&nd->last, nd->path.dentry,
-					  nd->flags);
-		if (IS_ERR(path.dentry))
-			return PTR_ERR(path.dentry);
-		if (unlikely(d_is_negative(path.dentry))) {
-			dput(path.dentry);
+		
+		path->dentry = lookup_slow(&nd->last, nd->path.dentry, nd->flags);
+		if (IS_ERR(path->dentry))
+			return PTR_ERR(path->dentry);
+			
+		if (unlikely(d_is_negative(path->dentry))) {
+			dput(path->dentry);
 			return -ENOENT;
 		}
-		path.mnt = nd->path.mnt;
-		err = follow_managed(&path, nd);
+		
+		path->mnt = nd->path.mnt;
+		err = follow_managed(path, nd);
 		if (unlikely(err < 0))
 			return err;
 
-		seq = 0;	/* we are already out of RCU mode */
-		inode = d_backing_inode(path.dentry);
+		inode = d_backing_inode(path->dentry);
 	}
-
-	if (flags & WALK_PUT)
+	
+	if (follow & WALK_PUT)
 		put_link(nd);
-	err = should_follow_link(nd, &path, flags & WALK_GET, inode, seq);
+		
+	err = should_follow_link(nd, path, follow & WALK_GET, inode, 0);
 	if (unlikely(err))
 		return err;
-	path_to_nameidata(&path, nd);
+		
+	path_to_nameidata(path, nd);
 	nd->inode = inode;
 	return 0;
 }
