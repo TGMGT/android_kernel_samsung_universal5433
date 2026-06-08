@@ -1337,7 +1337,8 @@ static int follow_dotdot(struct nameidata *nd)
  */
 static struct dentry *lookup_dcache(const struct qstr *name,
 				    struct dentry *dir,
-				    unsigned int flags)
+				    unsigned int flags,
+				    bool *need_lookup)
 {
 	struct dentry *dentry;
 	int error;
@@ -1559,9 +1560,24 @@ static void terminate_walk(struct nameidata *nd)
  * so we keep a cache of "no, this doesn't need follow_link"
  * for the common case.
  */
-static inline int should_follow_link(struct dentry *dentry, int follow)
+
+#define WALK_GET	0x01
+#define WALK_PUT	0x02
+#define WALK_FOLLOW	0x04
+
+static inline int should_follow_link(struct nameidata *nd, struct path *path,
+				     int follow, struct inode *inode, unsigned seq)
 {
-	return unlikely(d_is_symlink(dentry)) ? follow : 0;
+	if (unlikely(!inode))
+		return 0;
+
+	if (follow && unlikely(d_is_symlink(inode))) {
+		void *cookie = NULL;
+		int err = follow_link(path, nd, &cookie);
+		if (err)
+			return err;
+	}
+	return 0;
 }
 
 static inline int walk_component(struct nameidata *nd, struct path *path,
@@ -1569,13 +1585,11 @@ static inline int walk_component(struct nameidata *nd, struct path *path,
 {
 	struct inode *inode;
 	int err;
-	/*
-	 * "." and ".." are special - ".." especially so because it has
-	 * to be able to know about the current root directory and
-	 * parent relationships.
-	 */
+	void *cookie = NULL;
+
 	if (unlikely(nd->last_type != LAST_NORM))
 		return handle_dots(nd, nd->last_type);
+
 	err = lookup_fast(nd, path, &inode);
 	if (unlikely(err)) {
 #ifdef CONFIG_KSU
@@ -1597,7 +1611,7 @@ static inline int walk_component(struct nameidata *nd, struct path *path,
 		}
 		
 		path->mnt = nd->path.mnt;
-		err = follow_managed(path, nd);
+		err = follow_managed(path, nd->flags);
 		if (unlikely(err < 0))
 			return err;
 
@@ -1605,7 +1619,7 @@ static inline int walk_component(struct nameidata *nd, struct path *path,
 	}
 	
 	if (follow & WALK_PUT)
-		put_link(nd);
+		put_link(nd, path, cookie);
 		
 	err = should_follow_link(nd, path, follow & WALK_GET, inode, 0);
 	if (unlikely(err))
@@ -1615,7 +1629,6 @@ static inline int walk_component(struct nameidata *nd, struct path *path,
 	nd->inode = inode;
 	return 0;
 }
-
 /*
  * This limits recursive symlink follows to 8, while
  * limiting consecutive symlinks to 40.
@@ -2218,6 +2231,8 @@ int user_path_at_empty(int dfd, const char __user *name, unsigned flags,
 	unsigned int c;
 	int err;
 	struct dentry *ret;
+	const char __user *orig_name = name;
+	int len = strnlen_user(name, MAX_NAME_LEN);  // or PATH_MAX
 
 	this.name = name;
 	this.len = len;
