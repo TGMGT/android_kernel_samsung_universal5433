@@ -33,8 +33,8 @@ jobs:
 
       - name: Setup Toolchain
         run: |
-          git clone --depth=1 https://github.com/arter97/arm-linux-androideabi-4.9 toolchain
-          sudo cp -r toolchain/* /usr/local/
+          git clone --depth=1 https://github.com/JonasCardoso/Toolchain.git toolchain
+          sudo cp -r toolchain/linaro_gcc/arm-eabi-7.5.0-2019.12/* /usr/local/
           sudo ldconfig
 
       - name: Setup ccache
@@ -49,7 +49,7 @@ jobs:
       - name: Build Kernel
         run: |
           export ARCH=arm
-          export CROSS_COMPILE="arm-linux-androideabi-"
+          export CROSS_COMPILE="arm-eabi-"
 
           make lineage_gts210ltexx_defconfig
 
