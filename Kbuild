@@ -5,6 +5,16 @@
 # 2) Generate asm-offsets.h (may need bounds.h)
 # 3) Check for missing system calls
 
+CFLAGS_bounds.o := -fno-omit-frame-pointer -fno-schedule-insns
+CFLAGS_asm-offsets.o := -fno-omit-frame-pointer -fno-schedule-insns
+
+define sed-y
+	"/^->/{s:->#\(.*\):/* \1 */:; \
+	s:^->\([^ ]*\) [\$$#]*\([-0-9]*\) \(.*\):#define \1 \2 /* \3 */:; \
+	s:^->\([^ ]*\) [\$$#]*\([^ ]*\) \(.*\):#define \1 \2 /* \3 */:; \
+	s:->::; p;}"
+endef
+
 #####
 # 1) Generate bounds.h
 
@@ -30,7 +40,6 @@ define cmd_bounds
 	 echo "#endif" ) > $@
 endef
 
-# We use internal kbuild rules to avoid the "is up to date" message from make
 kernel/bounds.s: kernel/bounds.c FORCE
 	$(Q)mkdir -p $(dir $@)
 	$(call if_changed_dep,cc_s_c)
@@ -49,15 +58,6 @@ always  += $(offsets-file)
 targets += $(offsets-file)
 targets += arch/$(SRCARCH)/kernel/asm-offsets.s
 
-
-# Default sed regexp - multiline due to syntax constraints
-define sed-y
-	"/^->/{s:->#\(.*\):/* \1 */:; \
-	s:^->\([^ ]*\) [\$$#]*\([-0-9]*\) \(.*\):#define \1 \2 /* \3 */:; \
-	s:^->\([^ ]*\) [\$$#]*\([^ ]*\) \(.*\):#define \1 \2 /* \3 */:; \
-	s:->::; p;}"
-endef
-
 quiet_cmd_offsets = GEN     $@
 define cmd_offsets
 	(set -e; \
@@ -75,7 +75,6 @@ define cmd_offsets
 	 echo "#endif" ) > $@
 endef
 
-# We use internal kbuild rules to avoid the "is up to date" message from make
 arch/$(SRCARCH)/kernel/asm-offsets.s: arch/$(SRCARCH)/kernel/asm-offsets.c \
                                       $(obj)/$(bounds-file) FORCE
 	$(Q)mkdir -p $(dir $@)
