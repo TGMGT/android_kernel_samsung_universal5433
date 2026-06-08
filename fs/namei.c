@@ -1571,11 +1571,9 @@ static inline int should_follow_link(struct nameidata *nd, struct path *path,
 	if (unlikely(!inode))
 		return 0;
 
-	if (follow && unlikely(d_is_symlink(inode))) {
+	if (follow && unlikely(d_is_symlink(path->dentry))) {
 		void *cookie = NULL;
-		int err = follow_link(path, nd, &cookie);
-		if (err)
-			return err;
+		return follow_link(path, nd, &cookie);
 	}
 	return 0;
 }
@@ -2225,49 +2223,20 @@ struct dentry *lookup_one_len_unlocked(const char *name, struct dentry *base, in
 EXPORT_SYMBOL(lookup_one_len_unlocked);
 
 int user_path_at_empty(int dfd, const char __user *name, unsigned flags,
-		 struct path *path, int *empty)
+		       struct path *path, int *empty)
 {
-	struct qstr this;
-	unsigned int c;
+	struct nameidata nd;
 	int err;
-	struct dentry *ret;
-	const char __user *orig_name = name;
-	int len = strnlen_user(name, MAX_NAME_LEN);  // or PATH_MAX
 
-	this.name = name;
-	this.len = len;
-	this.hash = full_name_hash(name, len);
-	if (!len)
-		return ERR_PTR(-EACCES);
-
-	if (unlikely(name[0] == '.')) {
-		if (len < 2 || (len == 2 && name[1] == '.'))
-			return ERR_PTR(-EACCES);
+	err = path_lookupat(dfd, name, flags, &nd);
+	if (!err) {
+		*path = nd.path;
+		if (empty)
+			*empty = (nd.last_type == LAST_NORM && !nd.last.name[0]);
+	} else {
+		*path = (struct path){ };
 	}
-
-	while (len--) {
-		c = *(const unsigned char *)name++;
-		if (c == '/' || c == '\0')
-			return ERR_PTR(-EACCES);
-	}
-	/*
-	 * See if the low-level filesystem might want
-	 * to use its own hash..
-	 */
-	if (base->d_flags & DCACHE_OP_HASH) {
-		int err = base->d_op->d_hash(base, &this);
-		if (err < 0)
-			return ERR_PTR(err);
-	}
-
-	err = inode_permission(base->d_inode, MAY_EXEC);
-	if (err)
-		return ERR_PTR(err);
-
-	ret = lookup_dcache(&this, base, 0);
-	if (!ret)
-		ret = lookup_slow(&this, base, 0);
-	return ret;
+	return err;
 }
 
 int user_path_at(int dfd, const char __user *name, unsigned flags,
@@ -2387,7 +2356,7 @@ done:
 	}
 	path->dentry = dentry;
 	path->mnt = nd->path.mnt;
-	if (should_follow_link(dentry, nd->flags & LOOKUP_FOLLOW))
+	if (should_follow_link(nd, &nd->path, nd->flags & LOOKUP_FOLLOW, dentry->d_inode, 0))
 		return 1;
 	mntget(path->mnt);
 	follow_mount(path);
@@ -3177,7 +3146,7 @@ finish_lookup:
 		goto out;
 	}
 
-	if (should_follow_link(path->dentry, !symlink_ok)) {
+	if (should_follow_link(nd, path, !symlink_ok, inode, 0)) {
 		if (nd->flags & LOOKUP_RCU) {
 			if (unlikely(nd->path.mnt != path->mnt ||
 				     unlazy_walk(nd, path->dentry))) {
