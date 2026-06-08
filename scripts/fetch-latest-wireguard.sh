@@ -23,24 +23,14 @@ fi
 
 rm -rf net/wireguard
 mkdir -p net/wireguard
-
-echo "Downloading wireguard-linux-compat $VERSION..."
-
-# Primary mirror (zx2c4)
-if ! curl -A "$USER_AGENT" -LsS --connect-timeout 20 -f \
-  "https://git.zx2c4.com/wireguard-linux-compat/snapshot/wireguard-linux-compat-$VERSION.tar.xz" \
-  | tar -C "net/wireguard" -xJf - --strip-components=2 "wireguard-linux-compat-$VERSION/src" 2>/dev/null; then
-
-    echo "zx2c4 mirror failed, falling back to GitHub..."
-    if ! curl -A "$USER_AGENT" -LsS --connect-timeout 30 -f \
-      "https://codeload.github.com/WireGuard/wireguard-linux-compat/tar.gz/v${VERSION}" \
-      | tar -C "net/wireguard" -xzf - --strip-components=2 "wireguard-linux-compat-v${VERSION}/src"; then
-        echo "Error: Both mirrors failed to download WireGuard compat source."
-        exit 1
-    fi
-fi
-
+curl -A "$USER_AGENT" -LsS --connect-timeout 30 "https://git.zx2c4.com/wireguard-linux-compat/snapshot/wireguard-linux-compat-$VERSION.tar.xz" | tar -C "net/wireguard" -xJf - --strip-components=2 "wireguard-linux-compat-$VERSION/src"
 sed -i 's/tristate/bool/;s/default m/default y/;' net/wireguard/Kconfig
-sed -i '1i #ifndef fallthrough\n#define fallthrough do {} while (0)\n#endif' net/wireguard/compat/siphash/siphash.c
+
+cat << 'EOF' >> net/wireguard/compat/compat.h
+
+#ifndef fallthrough
+#define fallthrough do {} while (0)
+#endif
+EOF
+
 touch net/wireguard/.check
-echo "WireGuard compat $VERSION downloaded successfully."
