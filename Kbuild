@@ -9,7 +9,9 @@ CFLAGS_bounds.o := -fno-omit-frame-pointer -fno-schedule-insns
 CFLAGS_asm-offsets.o := -fno-omit-frame-pointer -fno-schedule-insns
 
 define sed-y
-	'/->/{s:^[[:space:]]*->\([^ ]*\)[[:space:]]*[#]*\([^ ]*\)[[:space:]]*\(.*\):#define \1 \2 /* \3 */:; s:\*\/[[:space:]]*@:\*\/:; p;}'
+	"/^->/{s:->#\(.*\):/* \1 */:; \
+	s:^->\([^ ]*\) [\$$#]*\([^ ]*\) \(.*\):#define \1 \2 /* \3 */:; \
+	s:->::; p;}"
 endef
 
 #####
