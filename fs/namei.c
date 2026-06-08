@@ -2174,6 +2174,43 @@ struct dentry *lookup_one_len(const char *name, struct dentry *base, int len)
 }
 EXPORT_SYMBOL(lookup_one_len);
 
+/**
+ * lookup_one_len_unlocked - lookup a dentry by name in unlocked context
+ * @name: name to look up
+ * @base: base directory dentry
+ * @len: length of name
+ *
+ * This is the key function needed for the dput deadlock fix.
+ * It avoids taking locks where possible and handles negative dentries safely.
+ */
+struct dentry *lookup_one_len_unlocked(const char *name, struct dentry *base, int len)
+{
+	struct qstr this;
+	struct dentry *dentry;
+
+	this.name = name;
+	this.len = len;
+	this.hash = full_name_hash(name, len);
+
+	dentry = d_lookup(base, &this);
+	if (dentry)
+		return dentry;
+
+	/* Slow path - this helps avoid the dput deadlock on negative dentries */
+	dentry = lookup_slow(&this, base, 0);
+	if (IS_ERR(dentry))
+		return dentry;
+
+	/* Critical: don't leave negative dentries hanging around */
+	if (!dentry->d_inode) {
+		dput(dentry);
+		return ERR_PTR(-ENOENT);
+	}
+
+	return dentry;
+}
+EXPORT_SYMBOL(lookup_one_len_unlocked);
+
 int user_path_at_empty(int dfd, const char __user *name, unsigned flags,
 		 struct path *path, int *empty)
 {
@@ -2564,8 +2601,6 @@ struct dentry *lock_rename(struct dentry *p1, struct dentry *p2)
 	mutex_lock(&p1->d_sb->s_vfs_rename_mutex);
 	return lock_two_directories(p1, p2);
 }
-EXPORT_SYMBOL(lock_rename);
-
 /*
  * c1 and p2 should be on the same fs.
  */
@@ -2616,7 +2651,6 @@ void unlock_rename(struct dentry *p1, struct dentry *p2)
 		mutex_unlock(&p1->d_sb->s_vfs_rename_mutex);
 	}
 }
-EXPORT_SYMBOL(unlock_rename);
 
 int vfs_create2(struct vfsmount *mnt, struct inode *dir, struct dentry *dentry,
 		umode_t mode, bool want_excl)
