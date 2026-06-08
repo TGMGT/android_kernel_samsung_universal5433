@@ -9,7 +9,7 @@ CFLAGS_bounds.o := -fno-omit-frame-pointer -fno-schedule-insns
 CFLAGS_asm-offsets.o := -fno-omit-frame-pointer -fno-schedule-insns
 
 define sed-y
-	's/.ascii \"->\([^ ]*\) \([^ ]*\) \(.*\)\"/#define \1 \2 \/* \3 *\/_def/p'
+	'/->/{s:^[[:space:]]*->\([^ ]*\)[[:space:]]*[#]*\([^ ]*\)[[:space:]]*\(.*\):#define \1 \2 /* \3 */:; s:\*\/[[:space:]]*@:\*\/:; p;}'
 endef
 
 #####
@@ -32,7 +32,7 @@ define cmd_bounds
 	 echo " *"; \
 	 echo " */"; \
 	 echo ""; \
-	 sed -ne $(sed-y) $< | sed 's/_def//'; \
+	 sed -ne $(sed-y) $<; \
 	 echo ""; \
 	 echo "#endif" ) > $@
 endef
@@ -67,7 +67,7 @@ define cmd_offsets
 	 echo " *"; \
 	 echo " */"; \
 	 echo ""; \
-	 sed -ne $(sed-y) $< | sed 's/_def//'; \
+	 sed -ne $(sed-y) $<; \
 	 echo ""; \
 	 echo "#endif" ) > $@
 endef
