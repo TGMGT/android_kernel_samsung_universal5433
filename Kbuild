@@ -9,9 +9,11 @@ CFLAGS_bounds.o := -fno-omit-frame-pointer -fno-schedule-insns
 CFLAGS_asm-offsets.o := -fno-omit-frame-pointer -fno-schedule-insns
 
 define sed-y
-	"/^->/{s:->#\(.*\):/* \1 */:; \
+	's:^[[:space:]]*\.ascii[[:space:]]*"\(.*\)".*:\1:; \
+	/^->/{s:->#\(.*\):/* \1 */:; \
+	s:^->\([^ ]*\) [\$$#]*\([-0-9]*\) \(.*\):#define \1 \2 /* \3 */:; \
 	s:^->\([^ ]*\) [\$$#]*\([^ ]*\) \(.*\):#define \1 \2 /* \3 */:; \
-	s:->::; p;}"
+	s:->::; p;}'
 endef
 
 #####
@@ -49,13 +51,11 @@ $(obj)/$(bounds-file): kernel/bounds.s Kbuild
 
 #####
 # 2) Generate asm-offsets.h
-#
 
 offsets-file := include/generated/asm-offsets.h
 
 always  += $(offsets-file)
-targets += $(offsets-file)
-targets += arch/$(SRCARCH)/kernel/asm-offsets.s
+targets += $(offsets-file) arch/$(SRCARCH)/kernel/asm-offsets.s
 
 quiet_cmd_offsets = GEN     $@
 define cmd_offsets
@@ -84,7 +84,6 @@ $(obj)/$(offsets-file): arch/$(SRCARCH)/kernel/asm-offsets.s Kbuild
 
 #####
 # 3) Check for missing system calls
-#
 
 always += missing-syscalls
 targets += missing-syscalls
