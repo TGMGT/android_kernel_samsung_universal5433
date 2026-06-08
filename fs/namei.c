@@ -1568,14 +1568,28 @@ static void terminate_walk(struct nameidata *nd)
 static inline int should_follow_link(struct nameidata *nd, struct path *path,
 				     int follow, struct inode *inode, unsigned seq)
 {
-	if (unlikely(!inode))
+	void *cookie = NULL;
+	int err;
+	
+	if (unlikely(!inode) || !follow)
 		return 0;
-
-	if (follow && unlikely(d_is_symlink(path->dentry))) {
-		void *cookie = NULL;
-		return follow_link(path, nd, &cookie);
+	
+	if (unlikely(!d_is_symlink(path->dentry)))
+		return 0;
+	
+	if (nd->flags & LOOKUP_RCU) {
+		if (unlazy_walk(nd, path->dentry))
+			return -ECHILD;
 	}
-	return 0;
+	
+	err = follow_link(path, nd, &cookie);
+	if (err)
+		return err;
+	
+	if (follow & WALK_PUT)
+		put_link(nd, path, cookie);
+
+	return 1;
 }
 
 static inline int walk_component(struct nameidata *nd, struct path *path,
@@ -1583,7 +1597,6 @@ static inline int walk_component(struct nameidata *nd, struct path *path,
 {
 	struct inode *inode;
 	int err;
-	void *cookie = NULL;
 
 	if (unlikely(nd->last_type != LAST_NORM))
 		return handle_dots(nd, nd->last_type);
@@ -1616,17 +1629,19 @@ static inline int walk_component(struct nameidata *nd, struct path *path,
 		inode = d_backing_inode(path->dentry);
 	}
 	
-	if (follow & WALK_PUT)
-		put_link(nd, path, cookie);
-		
-	err = should_follow_link(nd, path, follow & WALK_GET, inode, 0);
-	if (unlikely(err))
+	err = should_follow_link(nd, path, follow, inode, nd->seq);
+	
+	if (unlikely(err < 0)) {
 		return err;
-		
+	} else if (err == 1) {
+		return 0;
+	}
+	
 	path_to_nameidata(path, nd);
 	nd->inode = inode;
 	return 0;
 }
+
 /*
  * This limits recursive symlink follows to 8, while
  * limiting consecutive symlinks to 40.
@@ -2356,7 +2371,7 @@ done:
 	}
 	path->dentry = dentry;
 	path->mnt = nd->path.mnt;
-	if (should_follow_link(nd, &nd->path, nd->flags & LOOKUP_FOLLOW, dentry->d_inode, 0))
+	if (should_follow_link(nd, &nd->path, nd->flags & LOOKUP_FOLLOW, dentry->d_inode, nd->seq))
 		return 1;
 	mntget(path->mnt);
 	follow_mount(path);
@@ -3146,7 +3161,7 @@ finish_lookup:
 		goto out;
 	}
 
-	if (should_follow_link(nd, path, !symlink_ok, inode, 0)) {
+	if (should_follow_link(nd, path, !symlink_ok, inode, nd->seq)) {
 		if (nd->flags & LOOKUP_RCU) {
 			if (unlikely(nd->path.mnt != path->mnt ||
 				     unlazy_walk(nd, path->dentry))) {
