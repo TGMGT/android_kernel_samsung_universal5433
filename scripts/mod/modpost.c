@@ -295,10 +295,6 @@ static enum export export_from_sec(struct elf_info *elf, unsigned int sec)
 		return export_unknown;
 }
 
-/**
- * Add an exported symbol - it may have already been added without a
- * CRC, in this case just update the CRC
- **/
 static struct symbol *sym_add_exported(const char *name, struct module *mod,
 				       enum export export)
 {
@@ -308,10 +304,18 @@ static struct symbol *sym_add_exported(const char *name, struct module *mod,
 		s = new_symbol(name, mod, export);
 	} else {
 		if (!s->preloaded) {
-			warn("%s: '%s' exported twice. Previous export "
-			     "was in %s%s\n", mod->name, name,
-			     s->module->name,
-			     is_vmlinux(s->module->name) ?"":".ko");
+			/* 
+			 * Keep warning if vmlinux is involved, 
+			 * but skip if it's just a core "built-in" false positive from GCC 7.X
+			 */
+			if (is_vmlinux(mod->name) || is_vmlinux(s->module->name) ||
+			    (!strstr(mod->name, "built-in") && !strstr(s->module->name, "built-in"))) {
+				
+				warn("%s: '%s' exported twice. Previous export "
+				     "was in %s%s\n", mod->name, name,
+				     s->module->name,
+				     is_vmlinux(s->module->name) ?"":".ko");
+			}
 		} else {
 			/* In case Modules.symvers was out of date */
 			s->module = mod;
