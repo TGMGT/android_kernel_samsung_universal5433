@@ -297,33 +297,20 @@ static struct symbol *sym_add_exported(const char *name, struct module *mod,
 				       enum export export)
 {
 	struct symbol *s = find_symbol(name);
-	
+
 	if (!s) {
 		s = new_symbol(name, mod, export);
-		s->module = mod;
-		s->preloaded = 0;
-		s->vmlinux   = is_vmlinux(mod->name);
-		s->kernel    = 0;
-		s->export    = export;
-		return s;
-	}
-	
-	if (!external_module || is_vmlinux(s->module->name) || s->module == mod) {
-		if (s->module == mod) {
-			s->preloaded = 0;
-			s->vmlinux   = is_vmlinux(mod->name);
-			s->kernel    = 0;
-			s->export    = export;
-			return s;
+	} else {
+		if (!s->preloaded) {
+			warn("%s: '%s' exported twice. Previous export "
+			     "was in %s%s\n", mod->name, name,
+			     s->module->name,
+			     is_vmlinux(s->module->name) ?"":".ko");
+		} else {
+			/* In case Modules.symvers was out of date */
+			s->module = mod;
 		}
-		
-		warn("%s: '%s' exported twice. Previous export was in %s%s\n",
-		     mod->name, name, s->module->name,
-		     is_vmlinux(s->module->name) ? "" : ".ko");
-		return s;
 	}
-	
-	s->module = mod;
 	s->preloaded = 0;
 	s->vmlinux   = is_vmlinux(mod->name);
 	s->kernel    = 0;
