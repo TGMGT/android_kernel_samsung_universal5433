@@ -1559,15 +1559,16 @@ extern bool inode_owner_or_capable(const struct inode *inode);
  * VFS helper functions..
  */
 extern int vfs_create(struct inode *, struct dentry *, umode_t, bool);
+extern int vfs_create(struct inode *, struct dentry *, umode_t, bool);
 extern int vfs_create2(struct vfsmount *, struct inode *, struct dentry *, umode_t, bool);
 extern int vfs_mkdir(struct inode *, struct dentry *, umode_t);
 extern int vfs_mkdir2(struct vfsmount *, struct inode *, struct dentry *, umode_t);
 extern int vfs_mknod(struct inode *, struct dentry *, umode_t, dev_t);
 extern int vfs_mknod2(struct vfsmount *, struct inode *, struct dentry *, umode_t, dev_t);
 extern int vfs_symlink(struct inode *, struct dentry *, const char *);
+extern int vfs_symlink2(struct vfsmount *, struct inode *, struct dentry *, const char *);
 extern int vfs_link(struct dentry *, struct inode *, struct dentry *, struct inode **);
 extern int vfs_link2(struct vfsmount *, struct dentry *, struct inode *, struct dentry *, struct inode **);
-extern int check_sticky(struct inode *dir, struct inode *inode);
 extern int vfs_rmdir(struct inode *, struct dentry *);
 extern int vfs_rmdir2(struct vfsmount *, struct inode *, struct dentry *);
 extern int vfs_unlink(struct inode *, struct dentry *, struct inode **);
@@ -2885,6 +2886,23 @@ int __init get_filesystem_list(char *buf);
 #define ACC_MODE(x) ("\004\002\006\006"[(x)&O_ACCMODE])
 #define OPEN_FMODE(flag) ((__force fmode_t)(((flag + 1) & O_ACCMODE) | \
 					    (flag & __FMODE_NONOTIFY)))
+
+/*
+ * It's inline, so penalty for filesystems that don't use sticky bit is
+ * minimal.
+ */
+static inline int check_sticky(struct inode *dir, struct inode *inode)
+{
+	kuid_t fsuid = current_fsuid();
+
+	if (!(dir->i_mode & S_ISVTX))
+		return 0;
+	if (uid_eq(inode->i_uid, fsuid))
+		return 0;
+	if (uid_eq(dir->i_uid, fsuid))
+		return 0;
+	return !capable_wrt_inode_uidgid(inode, CAP_FOWNER);
+}
 
 static inline int is_sxid(umode_t mode)
 {
