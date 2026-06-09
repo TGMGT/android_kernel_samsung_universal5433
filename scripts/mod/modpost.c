@@ -202,11 +202,13 @@ static struct symbol *new_symbol(const char *name, struct module *module,
 				 enum export export)
 {
 	unsigned int hash;
+	struct symbol *new;
 
 	hash = tdb_hash(name) % SYMBOL_HASH_SIZE;
-	symbolhash[hash] = alloc_symbol(name, 0, symbolhash[hash]);
-
-	return symbolhash[hash];
+	new = symbolhash[hash] = alloc_symbol(name, 0, symbolhash[hash]);
+	new->module = module;
+	new->export = export;
+	return new;
 }
 
 static struct symbol *find_symbol(const char *name)
@@ -293,6 +295,10 @@ static enum export export_from_sec(struct elf_info *elf, unsigned int sec)
 		return export_unknown;
 }
 
+/**
+ * Add an exported symbol - it may have already been added without a
+ * CRC, in this case just update the CRC
+ **/
 static struct symbol *sym_add_exported(const char *name, struct module *mod,
 				       enum export export)
 {
@@ -599,10 +605,7 @@ static void handle_modversions(struct module *mod, struct elf_info *info,
 
 	switch (sym->st_shndx) {
 	case SHN_COMMON:
-		if (!strncmp(symname, "__gnu_lto_", sizeof("__gnu_lto_")-1)) {
-			/* Should warn here, but modpost runs before the linker */
-		} else
-			warn("\"%s\" [%s] is COMMON symbol\n", symname, mod->name);
+		warn("\"%s\" [%s] is COMMON symbol\n", symname, mod->name);
 		break;
 	case SHN_ABS:
 		/* CRC'd symbol */
@@ -692,17 +695,11 @@ static char *get_next_modinfo(void *modinfo, unsigned long modinfo_len,
 	unsigned long size = modinfo_len;
 
 	if (info) {
-		if ((char *)info < (char *)modinfo || (char *)info >= (char *)modinfo + modinfo_len)
-			return NULL;
-
 		size -= info - (char *)modinfo;
 		modinfo = next_string(info, &size);
 	}
 
 	for (p = modinfo; p; p = next_string(p, &size)) {
-		if (size <= 0 || size > modinfo_len)
-			break;
-
 		if (strncmp(p, tag, taglen) == 0 && p[taglen] == '=')
 			return p + taglen + 1;
 	}
@@ -841,7 +838,6 @@ static const char *section_white_list[] =
 	".xt.lit",         /* xtensa */
 	".arcextmap*",			/* arc */
 	".gnu.linkonce.arcext*",	/* arc : modules */
-	".gnu.lto*",
 	NULL
 };
 
@@ -1482,10 +1478,6 @@ static void check_section_mismatch(const char *modname, struct elf_info *elf,
 		to = find_elf_symbol(elf, r->r_addend, sym);
 		tosym = sym_name(elf, to);
 
-		if (!strncmp(fromsym, "reference___initcall",
-				sizeof("reference___initcall")-1))
-			return;
-
 		/* check whitelist - we may ignore it */
 		if (secref_whitelist(mismatch,
 					fromsec, fromsym, tosec, tosym)) {
@@ -1588,12 +1580,13 @@ static void section_rela(const char *modname, struct elf_info *elf,
 	Elf_Rela r;
 	unsigned int r_sym;
 	const char *fromsec;
-	
-	Elf_Rela *start = (void *)((void *)elf->hdr + sechdr->sh_offset);
-	Elf_Rela *stop  = (void *)((char *)start + sechdr->sh_size);
+
+	Elf_Rela *start = (void *)elf->hdr + sechdr->sh_offset;
+	Elf_Rela *stop  = (void *)start + sechdr->sh_size;
 
 	fromsec = sech_name(elf, sechdr);
 	fromsec += strlen(".rela");
+	/* if from section (name) is know good then skip it */
 	if (match(fromsec, section_white_list))
 		return;
 
@@ -1615,11 +1608,8 @@ static void section_rela(const char *modname, struct elf_info *elf,
 		r_sym = ELF_R_SYM(r.r_info);
 #endif
 		r.r_addend = TO_NATIVE(rela->r_addend);
-		
-		if (elf->symtab_start + r_sym >= elf->symtab_stop)
-			continue;
-
 		sym = elf->symtab_start + r_sym;
+		/* Skip special sections */
 		if (is_shndx_special(sym->st_shndx))
 			continue;
 		check_section_mismatch(modname, elf, &r, sym, fromsec);
@@ -1634,12 +1624,13 @@ static void section_rel(const char *modname, struct elf_info *elf,
 	Elf_Rela r;
 	unsigned int r_sym;
 	const char *fromsec;
-	
-	Elf_Rel *start = (void *)((void *)elf->hdr + sechdr->sh_offset);
-	Elf_Rel *stop  = (void *)((char *)start + sechdr->sh_size);
+
+	Elf_Rel *start = (void *)elf->hdr + sechdr->sh_offset;
+	Elf_Rel *stop  = (void *)start + sechdr->sh_size;
 
 	fromsec = sech_name(elf, sechdr);
 	fromsec += strlen(".rel");
+	/* if from section (name) is know good then skip it */
 	if (match(fromsec, section_white_list))
 		return;
 
@@ -1654,11 +1645,11 @@ static void section_rel(const char *modname, struct elf_info *elf,
 			r.r_info = ELF64_R_INFO(r_sym, r_typ);
 		} else {
 			r.r_info = TO_NATIVE(rel->r_info);
-			r_sym = ELF_R_SYM(rel->r_info);
+			r_sym = ELF_R_SYM(r.r_info);
 		}
 #else
 		r.r_info = TO_NATIVE(rel->r_info);
-		r_sym = ELF_R_SYM(rel->r_info);
+		r_sym = ELF_R_SYM(r.r_info);
 #endif
 		r.r_addend = 0;
 		switch (elf->hdr->e_machine) {
@@ -1675,11 +1666,8 @@ static void section_rel(const char *modname, struct elf_info *elf,
 				continue;
 			break;
 		}
-		
-		if (elf->symtab_start + r_sym >= elf->symtab_stop)
-			continue;
-
 		sym = elf->symtab_start + r_sym;
+		/* Skip special sections */
 		if (is_shndx_special(sym->st_shndx))
 			continue;
 		check_section_mismatch(modname, elf, &r, sym, fromsec);
@@ -1713,26 +1701,6 @@ static void check_sec_ref(struct module *mod, const char *modname,
 		else if (sechdrs[i].sh_type == SHT_REL)
 			section_rel(modname, elf, &elf->sechdrs[i]);
 	}
-}
-
-static char *remove_dot(char *s)
-{
-	static char buf[1024];
-	int n = strcspn(s, ".");
-
-	if (n > 0 && s[n] != 0) {
-		char *end;
-
-		strtoul(s + n + 1, &end, 10);
-		if (end > s + n + 1 && (*end == '.' || *end == 0)) {
-			size_t len = n < sizeof(buf) ? n : sizeof(buf) - 1;
-
-			memcpy(buf, s, len);
-			buf[len] = 0;
-			return buf;
-		}
-	}
-	return s;
 }
 
 static void read_symbols(char *modname)
@@ -1773,7 +1741,7 @@ static void read_symbols(char *modname)
 	}
 
 	for (sym = info.symtab_start; sym < info.symtab_stop; sym++) {
-		symname = remove_dot(info.strtab + sym->st_name);
+		symname = info.strtab + sym->st_name;
 
 		handle_modversions(mod, &info, sym, symname);
 		handle_moddevtable(mod, &info, sym, symname);
