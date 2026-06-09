@@ -1712,11 +1712,9 @@ static char *remove_dot(char *s)
 
 	if (n > 0 && s[n] != 0) {
 		strtoul(s + n + 1, &end, 10);
-		if  (end > s + n + 1 && (*end == '.' || *end == 0)) {
-			if (s[n] != 0) {
-				static char editable_buf[4096];
-				strncpy(editable_buf, s, sizeof(editable_buf) - 1);
-				editable_buf[sizeof(editable_buf) - 1] = '\0';
+		if (end > s + n + 1 && (*end == '.' || *end == 0)) {
+			char *editable_buf = strdup(s);
+			if (editable_buf) {
 				editable_buf[n] = 0;
 				return editable_buf;
 			}
