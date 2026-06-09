@@ -1707,17 +1707,19 @@ static void check_sec_ref(struct module *mod, const char *modname,
 
 static char *remove_dot(char *s)
 {
-	char *end;
+	static char buf[1024];
 	int n = strcspn(s, ".");
 
 	if (n > 0 && s[n] != 0) {
+		char *end;
+
 		strtoul(s + n + 1, &end, 10);
 		if (end > s + n + 1 && (*end == '.' || *end == 0)) {
-			char *editable_buf = strdup(s);
-			if (editable_buf) {
-				editable_buf[n] = 0;
-				return editable_buf;
-			}
+			size_t len = n < sizeof(buf) ? n : sizeof(buf) - 1;
+
+			memcpy(buf, s, len);
+			buf[len] = 0;
+			return buf;
 		}
 	}
 	return s;
