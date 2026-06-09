@@ -297,24 +297,34 @@ static struct symbol *sym_add_exported(const char *name, struct module *mod,
 				       enum export export)
 {
 	struct symbol *s = find_symbol(name);
-
+	
 	if (!s) {
 		s = new_symbol(name, mod, export);
-	} else {
-		/* FIX: If the symbol is just being re-parsed in the exact same module, skip the warning safely */
-		if (s->module == mod) {
-			return s;
-		}
-
-		if (!external_module || is_vmlinux(s->module->name)) {
-			warn("%s: '%s' exported twice. Previous export was in %s%s\n",
-			     mod->name, name, s->module->name,
-			     is_vmlinux(s->module->name) ? "" : ".ko");
-			return s;
-		}
+		s->module = mod;
+		s->preloaded = 0;
+		s->vmlinux   = is_vmlinux(mod->name);
+		s->kernel    = 0;
+		s->export    = export;
+		return s;
 	}
-
+	
+	if (!external_module || is_vmlinux(s->module->name) || s->module == mod) {
+		if (s->module == mod) {
+			s->preloaded = 0;
+			s->vmlinux   = is_vmlinux(mod->name);
+			s->kernel    = 0;
+			s->export    = export;
+			return s;
+		}
+		
+		warn("%s: '%s' exported twice. Previous export was in %s%s\n",
+		     mod->name, name, s->module->name,
+		     is_vmlinux(s->module->name) ? "" : ".ko");
+		return s;
+	}
+	
 	s->module = mod;
+	s->preloaded = 0;
 	s->vmlinux   = is_vmlinux(mod->name);
 	s->kernel    = 0;
 	s->export    = export;
