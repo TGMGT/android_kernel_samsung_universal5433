@@ -40,11 +40,10 @@ jobs:
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: kernel-gts210ltexx-${{ github.ref }}
+          key: kernel-gts210ltexx
           restore-keys: |
-            kernel-gts210ltexx-
+            kernel-gts210ltexx
           max-size: 5G
-          verbose: true
 
       - name: Build Kernel
         run: |
