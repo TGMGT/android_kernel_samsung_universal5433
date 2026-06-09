@@ -692,11 +692,17 @@ static char *get_next_modinfo(void *modinfo, unsigned long modinfo_len,
 	unsigned long size = modinfo_len;
 
 	if (info) {
+		if ((char *)info < (char *)modinfo || (char *)info >= (char *)modinfo + modinfo_len)
+			return NULL;
+
 		size -= info - (char *)modinfo;
 		modinfo = next_string(info, &size);
 	}
 
 	for (p = modinfo; p; p = next_string(p, &size)) {
+		if (size <= 0 || size > modinfo_len)
+			break;
+
 		if (strncmp(p, tag, taglen) == 0 && p[taglen] == '=')
 			return p + taglen + 1;
 	}
@@ -1582,13 +1588,12 @@ static void section_rela(const char *modname, struct elf_info *elf,
 	Elf_Rela r;
 	unsigned int r_sym;
 	const char *fromsec;
-
-	Elf_Rela *start = (void *)elf->hdr + sechdr->sh_offset;
-	Elf_Rela *stop  = (void *)start + sechdr->sh_size;
+	
+	Elf_Rela *start = (void *)((void *)elf->hdr + sechdr->sh_offset);
+	Elf_Rela *stop  = (void *)((char *)start + sechdr->sh_size);
 
 	fromsec = sech_name(elf, sechdr);
 	fromsec += strlen(".rela");
-	/* if from section (name) is know good then skip it */
 	if (match(fromsec, section_white_list))
 		return;
 
@@ -1610,8 +1615,11 @@ static void section_rela(const char *modname, struct elf_info *elf,
 		r_sym = ELF_R_SYM(r.r_info);
 #endif
 		r.r_addend = TO_NATIVE(rela->r_addend);
+		
+		if (elf->symtab_start + r_sym >= elf->symtab_stop)
+			continue;
+
 		sym = elf->symtab_start + r_sym;
-		/* Skip special sections */
 		if (is_shndx_special(sym->st_shndx))
 			continue;
 		check_section_mismatch(modname, elf, &r, sym, fromsec);
@@ -1626,13 +1634,12 @@ static void section_rel(const char *modname, struct elf_info *elf,
 	Elf_Rela r;
 	unsigned int r_sym;
 	const char *fromsec;
-
-	Elf_Rel *start = (void *)elf->hdr + sechdr->sh_offset;
-	Elf_Rel *stop  = (void *)start + sechdr->sh_size;
+	
+	Elf_Rel *start = (void *)((void *)elf->hdr + sechdr->sh_offset);
+	Elf_Rel *stop  = (void *)((char *)start + sechdr->sh_size);
 
 	fromsec = sech_name(elf, sechdr);
 	fromsec += strlen(".rel");
-	/* if from section (name) is know good then skip it */
 	if (match(fromsec, section_white_list))
 		return;
 
@@ -1647,11 +1654,11 @@ static void section_rel(const char *modname, struct elf_info *elf,
 			r.r_info = ELF64_R_INFO(r_sym, r_typ);
 		} else {
 			r.r_info = TO_NATIVE(rel->r_info);
-			r_sym = ELF_R_SYM(r.r_info);
+			r_sym = ELF_R_SYM(rel->r_info);
 		}
 #else
 		r.r_info = TO_NATIVE(rel->r_info);
-		r_sym = ELF_R_SYM(r.r_info);
+		r_sym = ELF_R_SYM(rel->r_info);
 #endif
 		r.r_addend = 0;
 		switch (elf->hdr->e_machine) {
@@ -1668,8 +1675,11 @@ static void section_rel(const char *modname, struct elf_info *elf,
 				continue;
 			break;
 		}
+		
+		if (elf->symtab_start + r_sym >= elf->symtab_stop)
+			continue;
+
 		sym = elf->symtab_start + r_sym;
-		/* Skip special sections */
 		if (is_shndx_special(sym->st_shndx))
 			continue;
 		check_section_mismatch(modname, elf, &r, sym, fromsec);
