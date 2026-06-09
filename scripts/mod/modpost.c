@@ -300,12 +300,18 @@ static struct symbol *sym_add_exported(const char *name, struct module *mod,
 
 	if (!s) {
 		s = new_symbol(name, mod, export);
-	} else if (!external_module || is_vmlinux(s->module->name) ||
-		   s->module == mod) {
-		warn("%s: '%s' exported twice. Previous export was in %s%s\n",
-		     mod->name, name, s->module->name,
-		     is_vmlinux(s->module->name) ? "" : ".ko");
-		return s;
+	} else {
+		/* FIX: If the symbol is just being re-parsed in the exact same module, skip the warning safely */
+		if (s->module == mod) {
+			return s;
+		}
+
+		if (!external_module || is_vmlinux(s->module->name)) {
+			warn("%s: '%s' exported twice. Previous export was in %s%s\n",
+			     mod->name, name, s->module->name,
+			     is_vmlinux(s->module->name) ? "" : ".ko");
+			return s;
+		}
 	}
 
 	s->module = mod;
