@@ -51,10 +51,13 @@ jobs:
           export ARCH=arm
           export CROSS_COMPILE="arm-eabi-"
 
+          cd KernelSU && git apply ../patches/kernelsu-include-order.patch
+          cd ..
+
           make lineage_gts210ltexx_defconfig
 
           # Build
-          make -j$(nproc) KBUILD_DUPLICATED_EXPORTS_NO_WARN=1 KCFLAGS="-Os -march=armv7ve -mtune=cortex-a57.cortex-a53 -fomit-frame-pointer" zImage Image dtbs
+          make -j$(nproc) KCFLAGS="-Os -march=armv7ve -mtune=cortex-a57.cortex-a53 -fomit-frame-pointer" zImage Image dtbs
 
           echo "=== ccache Statistics ==="
           ccache -s
