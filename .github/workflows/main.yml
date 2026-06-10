@@ -51,9 +51,6 @@ jobs:
           export ARCH=arm
           export CROSS_COMPILE="arm-eabi-"
 
-          cd KernelSU && git apply ../patches/kernelsu-include-order.patch
-          cd ..
-
           make lineage_gts210ltexx_defconfig
 
           # Build
