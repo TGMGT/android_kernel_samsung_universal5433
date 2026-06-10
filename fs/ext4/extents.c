@@ -527,9 +527,13 @@ static int __ext4_ext_check(const char *function, unsigned int line,
 	return 0;
 
 corrupted:
-	printk(KERN_ERR "Print invalid extent entries\n");
-	ext4_ext_show_eh(inode, eh);
-
+	if (bh) {
+		printk(KERN_ERR "Print invalid extent bh: %s\n", error_msg);
+		print_bh(inode->i_sb, bh, 0, EXT4_BLOCK_SIZE(inode->i_sb));
+	} else {
+		printk(KERN_ERR "Print invalid extent entries\n");
+		ext4_ext_show_eh(inode, eh);
+	}
 	ext4_error_inode(inode, function, line, 0,
 			 "pblk %llu bad header/extent: %s - magic %x, "
 			 "entries %u, max %u(%u), depth %u(%u)",
@@ -1276,7 +1280,7 @@ static int ext4_ext_split(handle_t *handle, struct inode *inode,
 		}
 		/* zero out unused area in the extent block */
 		ext_size = sizeof(struct ext4_extent_header) +
-			(sizeof(struct ext4_extent) * le16_to_cpu(neh->eh_entries));
+		   (sizeof(struct ext4_extent) * le16_to_cpu(neh->eh_entries));
 		memset(bh->b_data + ext_size, 0,
 			inode->i_sb->s_blocksize - ext_size);
 		ext4_extent_block_csum_set(inode, neh);

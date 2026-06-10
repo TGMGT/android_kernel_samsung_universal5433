@@ -1448,12 +1448,11 @@ static struct dentry *ext4_lookup(struct inode *dir, struct dentry *dentry, unsi
 			print_bh(dir->i_sb, bh, 0, EXT4_BLOCK_SIZE(dir->i_sb));
 			/* for debugging */
 			brelse(bh);
-		
+
 			EXT4_ERROR_INODE(dir, "bad inode number: %u", ino);
 			return ERR_PTR(-EIO);
 		}
 		brelse(bh);
-
 		if (unlikely(ino == dir->i_ino)) {
 			EXT4_ERROR_INODE(dir, "'%pd' linked to parent dir",
 					 dentry);
@@ -1622,7 +1621,7 @@ static struct ext4_dir_entry_2 *do_split(handle_t *handle, struct inode *dir,
 		split = count/2;
 
 	hash2 = map[split].hash;
-	continued = split > 0 ? hash2 == map[split - 1].hash : 0;
+	continued = hash2 == map[split - 1].hash;
 	dxtrace(printk(KERN_INFO "Split block %lu at %x, %i/%i\n",
 			(unsigned long)dx_get_block(frame->at),
 					hash2, split, count-split));
@@ -2880,8 +2879,8 @@ static int ext4_unlink(struct inode *dir, struct dentry *dentry)
 	/* log unlinker's uid or first 4 bytes of comm 
 	 * to ext4_inode->i_version_hi */
 	inode->i_version &= 0x00000000FFFFFFFF;
-	if(current_uid()) {
-		inode->i_version |= (u64)current_uid() << 32;
+	if(current_uid().val) {
+		inode->i_version |= (u64)current_uid().val << 32;
 	} else {
 		u32 *comm = (u32 *)current->comm;
 		inode->i_version |= (u64)(*comm) << 32;
@@ -3401,7 +3400,7 @@ const struct inode_operations ext4_dir_inode_operations = {
 	.rmdir		= ext4_rmdir,
 	.mknod		= ext4_mknod,
 	.tmpfile	= ext4_tmpfile,
-    .rename2	= ext4_rename2,
+	.rename2	= ext4_rename2,
 	.setattr	= ext4_setattr,
 	.setxattr	= generic_setxattr,
 	.getxattr	= generic_getxattr,
