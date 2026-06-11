@@ -386,7 +386,7 @@ static inline void __sdfat_set_bio_iterate(struct bio *bio, sector_t sector,
 static void __sdfat_truncate_pagecache(struct inode *inode,
 					loff_t to, loff_t newsize)
 {
-	truncate_pagecache(inode, to, newsize);
+	truncate_pagecache(inode, newsize);
 }
 
 static int sdfat_readdir(struct file *filp, void *dirent, filldir_t filldir)
