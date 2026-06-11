@@ -8,6 +8,7 @@
 #include <linux/dcache.h>
 #include <linux/path.h>
 #include <linux/stat.h>
+#include <linux/cred.h>
 #include <linux/uidgid.h>
 #include <linux/cache.h>
 #include <linux/list.h>
