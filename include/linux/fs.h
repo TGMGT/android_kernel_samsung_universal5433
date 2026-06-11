@@ -1562,6 +1562,7 @@ extern bool inode_owner_or_capable(const struct inode *inode);
 /*
  * VFS helper functions..
  */
+extern int __check_sticky(struct inode *dir, struct inode *inode);
 extern int vfs_create(struct inode *, struct dentry *, umode_t, bool);
 extern int vfs_create2(struct vfsmount *, struct inode *, struct dentry *, umode_t, bool);
 extern int vfs_mkdir(struct inode *, struct dentry *, umode_t);
@@ -2900,34 +2901,10 @@ int __init get_filesystem_list(char *buf);
  */
 static inline int check_sticky(struct inode *dir, struct inode *inode)
 {
-#ifdef CONFIG_USER_NS
-	/* Isolated fix for strict checks with user namespaces enabled */
-	struct cred {
-		int ___dummy;
-		char ___pad;
-		kuid_t fsuid;
-	};
-	extern const struct cred *current_cred(void);
-
 	if (!(dir->i_mode & S_ISVTX))
 		return 0;
-	if (uid_eq(inode->i_uid, current_cred()->fsuid))
-		return 0;
-	if (uid_eq(dir->i_uid, current_cred()->fsuid))
-		return 0;
-	return !capable_wrt_inode_uidgid(inode, CAP_FOWNER);
-#else
-	/* Original fallback kernel code path when namespaces are disabled */
-	kuid_t fsuid = current_fsuid();
-
-	if (!(dir->i_mode & S_ISVTX))
-		return 0;
-	if (uid_eq(inode->i_uid, fsuid))
-		return 0;
-	if (uid_eq(dir->i_uid, fsuid))
-		return 0;
-	return !capable_wrt_inode_uidgid(inode, CAP_FOWNER);
-#endif
+	
+	return __check_sticky(dir, inode);
 }
 
 static inline int is_sxid(umode_t mode)
