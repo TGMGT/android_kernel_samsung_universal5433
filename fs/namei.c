@@ -2438,6 +2438,23 @@ kern_path_mountpoint(int dfd, const char *name, struct path *path,
 }
 EXPORT_SYMBOL(kern_path_mountpoint);
 
+/**
+ * __check_sticky - Check sticky bit permissions for user namespaces
+ * @dir: directory inode
+ * @inode: target file inode
+ */
+int __check_sticky(struct inode *dir, struct inode *inode)
+{
+	kuid_t fsuid = current_fsuid();
+
+	if (uid_eq(inode->i_uid, fsuid))
+		return 0;
+	if (uid_eq(dir->i_uid, fsuid))
+		return 0;
+	return !capable_wrt_inode_uidgid(inode, CAP_FOWNER);
+}
+EXPORT_SYMBOL(__check_sticky);
+
 /*
  *	Check whether we can remove a link victim from directory dir, check
  *  whether the type of victim is right.
@@ -2475,7 +2492,7 @@ static int may_delete(struct vfsmount *mnt, struct inode *dir, struct dentry *vi
 	if (IS_APPEND(dir))
 		return -EPERM;
 
-	if (check_sticky(dir, inode) || IS_APPEND(inode) ||
+	if (__check_sticky(dir, inode) || IS_APPEND(inode) ||
 	    IS_IMMUTABLE(inode) || IS_SWAPFILE(inode))
 		return -EPERM;
 	if (isdir) {
