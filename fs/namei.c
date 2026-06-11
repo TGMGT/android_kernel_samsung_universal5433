@@ -36,6 +36,7 @@
 #include <linux/posix_acl.h>
 #include <linux/hash.h>
 #include <asm/uaccess.h>
+#include <linux/cred.h>
 
 #include "internal.h"
 #include "mount.h"
