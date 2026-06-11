@@ -118,7 +118,7 @@ inline void rkp_print_debug(void)
 	if(current->mm)
 			printk(KERN_ERR"\nRKP1 mm = %p pgd = %p bp_pgd = %p\n",current->mm,current->mm->pgd,current->cred->bp_pgd);
 
-	printk(KERN_ERR"\nRKP2 uid = %d gid = %d euid = %d  egid = %d \n",current->cred->uid,current->cred->gid,current->cred->euid,current->cred->egid);
+	printk(KERN_ERR"\nRKP2 uid = %d gid = %d euid = %d  egid = %d \n",current->cred->uid.val,current->cred->gid.val,current->cred->euid,current->cred->egid);
 
 }
 
