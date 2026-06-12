@@ -85,6 +85,8 @@ struct bio {
 
 	atomic_t		bi_cnt;		/* pin count */
 
+    atomic_t		bi_remaining;
+
 	struct bio_vec		*bi_io_vec;	/* the actual vec list */
 
 	struct bio_set		*bi_pool;
