@@ -390,17 +390,16 @@ static int tmds_control(struct sii8240_data *sii8240, bool tmds_on)
 #ifdef SFEATURE_HDCP_SUPPORT
 		if (sii8240->hdcp_support) {
 			ret = mhl_read_byte_reg(tpi, 0x1A, &value);
-		if (TMDS_OUTPUT_CONTROL_POWER_DOWN & value) {
-			pr_info("sii8240: TMDS is power_down\n");
-			sii8240_tmds_active_hdcp(sii8240);
-		} else {
-			ret = mhl_read_byte_reg(tpi, 0x29, &value2);
-			if (LINK_STATUS_NORMAL !=
-					(LINK_STATUS_MASK & value2))
-				ret = sii8240_tmds_active_hdcp(sii8240);
-			else if (AV_MUTE_MUTED & value)
-				ret = set_mute_mode(sii8240, false);
-		}
+			if (TMDS_OUTPUT_CONTROL_POWER_DOWN & value) {
+				pr_info("sii8240: TMDS is power_down\n");
+				sii8240_tmds_active_hdcp(sii8240);
+			} else {
+				ret = mhl_read_byte_reg(tpi, 0x29, &value2);
+				if (LINK_STATUS_NORMAL != (LINK_STATUS_MASK & value2))
+					ret = sii8240_tmds_active_hdcp(sii8240);
+				else if (AV_MUTE_MUTED & value)
+					ret = set_mute_mode(sii8240, false);
+			}
 		} else {
 			pr_info("hdcp is forced disable\n");
 			mhl_modify_reg(tpi, 0x1A,
@@ -435,11 +434,10 @@ static int tmds_control(struct sii8240_data *sii8240, bool tmds_on)
 					__func__, __LINE__);
 			return ret;
 		}
-	default:
-		pr_warn("sii8240: default option @tmds _control\n");
 	}
 	return ret;
 }
+
 static int set_hdmi_mode(struct sii8240_data *sii8240, bool hdmi_mode)
 {
 	int ret = 0;
