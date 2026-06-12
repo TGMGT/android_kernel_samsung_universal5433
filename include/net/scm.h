@@ -53,8 +53,8 @@ static __inline__ void scm_set_cred(struct scm_cookie *scm,
 	scm->cred = cred ? get_cred(cred) : NULL;
 	scm->creds.pid = pid_vnr(pid);
 	
-	scm->creds.uid = cred ? from_kuid(current_user_ns(), cred->euid) : from_kuid(current_user_ns(), INVALID_UID);
-	scm->creds.gid = cred ? from_kgid(current_user_ns(), cred->egid) : from_kgid(current_user_ns(), INVALID_GID);
+	scm->creds.uid = cred ? from_kuid(ns, cred->euid) : from_kuid(ns, INVALID_UID);
+	scm->creds.gid = cred ? from_kgid(ns, cred->egid) : from_kgid(ns, INVALID_GID);
 }
 
 static __inline__ void scm_destroy_cred(struct scm_cookie *scm)
