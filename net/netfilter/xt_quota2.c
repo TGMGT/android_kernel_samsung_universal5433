@@ -57,7 +57,8 @@ static unsigned int quota_list_gid_param = 0;
 module_param_named(perms, quota_list_perms, uint, S_IRUGO | S_IWUSR);
 module_param_named(uid, quota_list_uid_param, uint, S_IRUGO | S_IWUSR);
 module_param_named(gid, quota_list_gid_param, uint, S_IRUGO | S_IWUSR);
-kuid_t quota_list_uid = make_kuid(&init_user_ns, quota_list_uid_param);
+kuid_t quota_list_uid;
+kuid_t quota_list_gid;
 
 #ifdef CONFIG_NETFILTER_XT_MATCH_QUOTA2_LOG
 static void quota2_log(unsigned int hooknum,
