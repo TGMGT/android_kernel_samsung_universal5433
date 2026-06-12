@@ -181,16 +181,18 @@ int __scm_send(struct socket *sock, struct msghdr *msg, struct scm_cookie *p)
 			}
 
 			if (!p->cred ||
-			    (p->cred->euid != p->creds.uid) ||
-			    (p->cred->egid != p->creds.gid)) {
+			    (!uid_eq(p->cred->euid, make_kuid(p->cred->user_ns, p->creds.uid))) ||
+                (!gid_eq(p->cred->egid, make_kgid(p->cred->user_ns, p->creds.gid)))) {
 				struct cred *cred;
 				err = -ENOMEM;
 				cred = prepare_creds();
 				if (!cred)
 					goto error;
 
-				cred->uid = cred->euid = p->creds.uid;
-				cred->gid = cred->egid = p->creds.gid;
+				cred->uid  = make_kuid(cred->user_ns, p->creds.uid);
+                cred->euid = make_kuid(cred->user_ns, p->creds.uid);
+                cred->gid  = make_kgid(cred->user_ns, p->creds.gid);
+                cred->egid = make_kgid(cred->user_ns, p->creds.gid);
 				if (p->cred)
 					put_cred(p->cred);
 				p->cred = cred;
