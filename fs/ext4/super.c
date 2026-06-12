@@ -2697,7 +2697,7 @@ static ssize_t r_blocks_count_store(struct ext4_attr *a,
 	if (parse_strtoull(buf, -1ULL, &val) || ext4_r_blocks_count(sbi->s_es))
 		return -EINVAL;
 	atomic64_set(&sbi->s_r_blocks_count, val);
-	ext4_msg(sbi->s_sb, KERN_INFO, "Root reserved blocks %ld",
+	ext4_msg(sbi->s_sb, KERN_INFO, "Root reserved blocks %lld",
 			atomic64_read(&sbi->s_r_blocks_count));
 
 	return count;
@@ -4423,7 +4423,7 @@ no_journal:
 				ANDROID_M_R_BLOCKS_COUNT);
 #endif
 	if (atomic64_read(&sbi->s_r_blocks_count))
-		ext4_msg(sb, KERN_INFO, "Root reserved blocks %ld",
+		ext4_msg(sb, KERN_INFO, "Root reserved blocks %lld",
 				atomic64_read(&sbi->s_r_blocks_count));
 
 	if (ext4_sec_r_blocks_count(es))
@@ -5875,7 +5875,7 @@ void print_bh(struct super_block *sb, struct buffer_head *bh
 {
 	if (bh) {
 		printk(KERN_ERR " print_bh: bh %p,"
-				" bh->b_size %lu, bh->b_data %p\n",
+				" bh->b_size %u, bh->b_data %p\n",
 				(void *) bh, bh->b_size, (void *) bh->b_data);
 		print_block_data(sb, bh->b_blocknr, bh->b_data, start, len);
 	}
@@ -5894,9 +5894,9 @@ void print_block_data(struct super_block *sb, sector_t blocknr
 	struct mount *mnt = NULL;
 
 	printk(KERN_ERR "As EXT4-fs error, printing data in hex\n");
-	printk(KERN_ERR " [partition info] s_id : %s, start sector# : %lu\n"
+	printk(KERN_ERR " [partition info] s_id : %s, start sector# : %llu\n"
 			, sb->s_id, sb->s_bdev->bd_part->start_sect);
-	printk(KERN_ERR " dump block# : %lu, start offset(byte) : %d\n"
+	printk(KERN_ERR " dump block# : %llu, start offset(byte) : %d\n"
 			, blocknr, start);
 	printk(KERN_ERR " length(byte) : %d, data_to_dump 0x%p\n"
 			, len, (void *)data_to_dump);

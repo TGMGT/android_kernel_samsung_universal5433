@@ -630,7 +630,7 @@ int sysfs_chown_file(struct kobject *kobj, const struct attribute *attr,
 {
 	struct sysfs_dirent *sd;
 	struct iattr newattrs;
-	const void *ns;
+	struct user_namespace *ns = current_user_ns();
 	int rc;
 
 	rc = sysfs_attr_ns(kobj, attr, &ns);

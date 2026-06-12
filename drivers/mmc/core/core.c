@@ -2771,13 +2771,12 @@ EXPORT_SYMBOL(mmc_detect_card_removed);
 
 void mmc_rescan(struct work_struct *work)
 {
+	int i;
+	bool extend_wakelock = false;
 	struct mmc_host *host =
 		container_of(work, struct mmc_host, detect.work);
     
     host->caps2 |= MMC_CAP2_NO_SDIO_CRC;
-    
-	int i;
-	bool extend_wakelock = false;
 
 	if (host->rescan_disable)
 		return;

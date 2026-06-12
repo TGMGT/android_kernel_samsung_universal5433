@@ -238,10 +238,10 @@ static int samsung_bookcover_input_mapping(struct hid_device *hdev,
 
 	dbg_hid("samsung wireless keyboard input mapping event [0x%x]\n",
 		usage->hid & HID_USAGE);
-
+	
+	set_bit(EV_REP, hi->input->evbit);
 	if (HID_UP_KEYBOARD == (usage->hid & HID_USAGE_PAGE)) {
 		switch (usage->hid & HID_USAGE) {
-		set_bit(EV_REP, hi->input->evbit);
 		/* Only for UK keyboard */
 		/* key found */
 		case 0x32: samsung_kbd_mouse_map_key_clear(KEY_BACKSLASH); break;

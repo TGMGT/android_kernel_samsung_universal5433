@@ -542,12 +542,13 @@ static int sb_init_dio_done_wq(struct super_block *sb)
 	if (!wq)
 		return -ENOMEM;
 	/*
-	 * This has to be atomic as more DIOs can race to create the workqueue
-	 */
-	cmpxchg(&sb->s_dio_done_wq, NULL, wq);
-	/* Someone created workqueue before us? Free ours... */
-	if (wq != sb->s_dio_done_wq)
+	* This has to be atomic as more DIOs can race to create the workqueue
+	* Someone workqueue before us? Free ours... 
+	*/
+
+	if (cmpxchg(&sb->s_dio_done_wq, NULL, wq)) {
 		destroy_workqueue(wq);
+	}
 	return 0;
 }
 
