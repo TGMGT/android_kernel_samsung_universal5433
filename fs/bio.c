@@ -296,6 +296,7 @@ void bio_reset(struct bio *bio)
 
 	memset(bio, 0, BIO_RESET_BYTES);
 	bio->bi_flags = flags|(1 << BIO_UPTODATE);
+	atomic_set(&bio->bi_remaining, 1);
 }
 EXPORT_SYMBOL(bio_reset);
 
@@ -1799,6 +1800,21 @@ void bio_endio(struct bio *bio, int error)
 	}
 }
 EXPORT_SYMBOL(bio_endio);
+
+/**
+ * bio_endio_nodec - end I/O on a bio, without decrementing bi_remaining
+ * @bio:	bio
+ * @error:	error, if any
+ *
+ * For code that has saved and restored bi_end_io; thing hard before using this
+ * function, probably you should've cloned the entire bio.
+ **/
+void bio_endio_nodec(struct bio *bio, int error)
+{
+	atomic_inc(&bio->bi_remaining);
+	bio_endio(bio, error);
+}
+EXPORT_SYMBOL(bio_endio_nodec);
 
 void bio_pair_release(struct bio_pair *bp)
 {
