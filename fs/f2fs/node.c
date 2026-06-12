@@ -1266,6 +1266,7 @@ static struct page *last_fsync_dnode(struct f2fs_sb_info *sbi, nid_t ino)
 	pgoff_t index, end;
 	struct pagevec pvec;
 	struct page *last_page = NULL;
+	int nr_pages;
 
 	pagevec_init(&pvec, 0);
 	index = 0;
@@ -1327,6 +1328,7 @@ int fsync_node_pages(struct f2fs_sb_info *sbi, struct inode *inode,
 	bool marked = false;
 	nid_t ino = inode->i_ino;
 	int nwritten = 0;
+	int nr_pages;
 
 	if (atomic) {
 		last_page = last_fsync_dnode(sbi, ino);
@@ -1436,6 +1438,7 @@ int sync_node_pages(struct f2fs_sb_info *sbi, struct writeback_control *wbc)
 	int step = 0;
 	int nwritten = 0;
 	int ret = 0;
+	int nr_pages;
 
 	pagevec_init(&pvec, 0);
 
@@ -1534,6 +1537,7 @@ int wait_on_node_pages_writeback(struct f2fs_sb_info *sbi, nid_t ino)
 	pgoff_t index = 0, end = ULONG_MAX;
 	struct pagevec pvec;
 	int ret2 = 0, ret = 0;
+	int nr_pages;
 
 	pagevec_init(&pvec, 0);
 

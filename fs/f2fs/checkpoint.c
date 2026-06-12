@@ -296,6 +296,7 @@ long sync_meta_pages(struct f2fs_sb_info *sbi, enum page_type type,
 	pgoff_t index = 0, end = ULONG_MAX, prev = ULONG_MAX;
 	struct pagevec pvec;
 	long nwritten = 0;
+	int nr_pages;
 	struct writeback_control wbc = {
 		.for_reclaim = 0,
 	};
