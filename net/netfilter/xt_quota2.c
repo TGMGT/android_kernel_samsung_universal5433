@@ -52,8 +52,8 @@ static DEFINE_SPINLOCK(counter_list_lock);
 
 static struct proc_dir_entry *proc_xt_quota;
 static unsigned int quota_list_perms = S_IRUGO | S_IWUSR;
-static unsigned int quota_list_uid_param;
-static unsigned int quota_list_gid_param;
+static unsigned int quota_list_uid_param = 0;
+static unsigned int quota_list_gid_param = 0;
 module_param_named(perms, quota_list_perms, uint, S_IRUGO | S_IWUSR);
 module_param_named(uid, quota_list_uid_param, uint, S_IRUGO | S_IWUSR);
 module_param_named(gid, quota_list_gid_param, uint, S_IRUGO | S_IWUSR);
@@ -361,6 +361,9 @@ static int __init quota_mt2_init(void)
 {
 	int ret;
 	pr_debug("xt_quota2: init()");
+
+	quota_list_uid = make_kuid(&init_user_ns, quota_list_uid_param);
+	quota_list_gid = make_kgid(&init_user_ns, quota_list_gid_param);
 
 #ifdef CONFIG_NETFILTER_XT_MATCH_QUOTA2_LOG
 	nflognl = netlink_kernel_create(&init_net, NETLINK_NFLOG, NULL);
