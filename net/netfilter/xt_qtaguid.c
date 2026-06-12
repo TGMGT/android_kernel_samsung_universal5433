@@ -1699,7 +1699,7 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 			sk->sk_socket ? sk->sk_socket->file : (void *)-1LL);
 		filp = sk->sk_socket ? sk->sk_socket->file : NULL;
 		MT_DEBUG("qtaguid[%d]: filp...uid=%u\n",
-			par->hooknum, filp ? filp->f_cred->fsuid : -1);
+			par->hooknum, filp ? from_kuid_munged(&init_user_ns, filp->f_cred->fsuid) : -1);
 	}
 
 	if (sk == NULL || sk->sk_socket == NULL) {
@@ -1740,7 +1740,7 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	 * For now we only do iface stats when the uid-owner is not requested
 	 */
 	if (!(info->match & XT_QTAGUID_UID))
-		account_for_uid(skb, sk, sock_uid, par);
+		account_for_uid(skb, sk, from_kuid(&init_user_ns, sock_uid), par);
 
 	/*
 	 * The following two tests fail the match when:
@@ -1749,8 +1749,8 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	 * Thus (!a && b) || (a && !b) == a ^ b
 	 */
 	if (info->match & XT_QTAGUID_UID)
-		if ((filp->f_cred->fsuid >= info->uid_min &&
-		     filp->f_cred->fsuid <= info->uid_max) ^
+		if ((from_kuid(&init_user_ns, filp->f_cred->fsuid) >= info->uid_min &&
+             from_kuid(&init_user_ns, filp->f_cred->fsuid) <= info->uid_max) ^
 		    !(info->invert & XT_QTAGUID_UID)) {
 			MT_DEBUG("qtaguid[%d]: leaving uid not matching\n",
 				 par->hooknum);
@@ -1758,8 +1758,8 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 			goto put_sock_ret_res;
 		}
 	if (info->match & XT_QTAGUID_GID)
-		if ((filp->f_cred->fsgid >= info->gid_min &&
-				filp->f_cred->fsgid <= info->gid_max) ^
+		if ((from_kgid(&init_user_ns, filp->f_cred->fsgid) >= info->gid_min &&
+             from_kgid(&init_user_ns, filp->f_cred->fsgid) <= info->gid_max) ^
 			!(info->invert & XT_QTAGUID_GID)) {
 			MT_DEBUG("qtaguid[%d]: leaving gid not matching\n",
 				par->hooknum);
